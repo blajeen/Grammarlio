@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Grammarlio — English & Português",
+  "version": "0.1.0",
+  "description": "Assistente de escrita local em inglês e português. Sem conta, sem envio de textos e sem recursos pagos.",
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel"],
+  "action": { "default_title": "Abrir Grammarlio" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "side_panel": { "default_path": "panel.html" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co;"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "record": {
+    "model": "https://huggingface.co/mlc-ai/Qwen3-1.7B-q4f32_1-MLC/resolve/bddd4d584cabe19113f7e4ff46fd9e73b4d3dc89/",
+    "model_id": "Qwen3-1.7B-q4f32_1-MLC",
+    "model_lib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_87/base/Qwen3-1.7B-q4f32_1_cs1k-webgpu.wasm",
+    "vram_required_MB": 2635.44,
+    "low_resource_required": true,
+    "overrides": {
+      "context_window_size": 4096
+    }
+  },
+  "wasmSource": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/146ed9cd4b4062e967b017fd2291f7106b50599f/web-llm-models/v0_2_87/base/Qwen3-1.7B-q4f32_1_cs1k-webgpu.wasm",
+  "wasmSha256": "55d24798dbc00bc3ab8a05eb94fb4833d3760c6de911f8f264c3f6e282014fab"
+}
