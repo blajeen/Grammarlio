@@ -1,6 +1,38 @@
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch(console.error);
+chrome.runtime.onInstalled.addListener(async (details) => {
+  const { aiConsent } = await chrome.storage.local.get("aiConsent");
+  await chrome.storage.local.remove([
+    "language",
+    "disabledSites",
+    "inlineAiEnabled",
+  ]);
+  if (details.reason === "install") {
+    const tabs = await chrome.tabs.query({
+      url: ["http://*/*", "https://*/*"],
+    });
+    await Promise.allSettled(
+      tabs
+        .filter((tab) => tab.id)
+        .map((tab) =>
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id, allFrames: true },
+            files: ["inline.js"],
+          }),
+        ),
+    );
+  }
+  if (
+    details.reason === "install" ||
+    (details.reason === "update" && aiConsent === undefined)
+  )
+    chrome.windows
+      .create({
+        url: chrome.runtime.getURL("welcome.html"),
+        type: "popup",
+        width: 450,
+        height: 580,
+      })
+      .catch(console.error);
+});
 
 let creating;
 async function ensureOffscreen() {
@@ -25,33 +57,98 @@ async function ensureOffscreen() {
   }
 }
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
+  const panel =
+    sender.id === chrome.runtime.id &&
+    ["popup.html", "welcome.html"].some(
+      (path) => sender.url === chrome.runtime.getURL(path),
+    );
   if (
     message?.target !== "grammarlio-background" ||
-    !sender.tab ||
-    !/^https?:/.test(sender.url || "")
+    (!panel && (!sender.tab || !/^https?:/.test(sender.url || "")))
   )
     return;
   (async () => {
     const settings = await chrome.storage.local.get([
       "inlineEnabled",
-      "disabledSites",
-      "language",
       "personal",
+      "aiConsent",
     ]);
-    const hostname = new URL(sender.url).hostname;
-    if (
-      settings.inlineEnabled === false ||
-      settings.disabledSites?.includes(hostname)
+    if (!panel && settings.inlineEnabled === false) return { disabled: true };
+    const language = ["pt-BR", "en-US", "es-ES", "auto"].includes(
+      message.language,
     )
-      return { disabled: true };
-    const language = ["pt-BR", "en-US"].includes(message.language)
       ? message.language
-      : settings.language || "pt-BR";
+      : "pt-BR";
     const personal = Array.isArray(settings.personal?.[language])
       ? settings.personal[language]
           .filter((w) => typeof w === "string")
           .slice(0, 5000)
       : [];
+    if (message.action === "open-welcome") {
+      await chrome.windows.create({
+        url: chrome.runtime.getURL("welcome.html"),
+        type: "popup",
+        width: 450,
+        height: 580,
+      });
+      return { ok: true };
+    }
+    if (panel && message.action === "ai-consent") {
+      await chrome.storage.local.set({ aiConsent: message.accepted === true });
+      return { ok: true };
+    }
+    if (message.action?.startsWith("ai-")) {
+      if (
+        ![
+          "ai-status",
+          "ai-load",
+          "ai-rewrite",
+          "ai-cancel",
+          "ai-unload",
+          "ai-delete",
+          "ai-off",
+        ].includes(message.action)
+      )
+        throw new Error("Ação de IA inválida.");
+      if (
+        message.action === "ai-rewrite" &&
+        (typeof message.text !== "string" ||
+          message.text.length > 3000 ||
+          typeof (message.context || "") !== "string" ||
+          (message.context || "").length > 600 ||
+          !["correct", "clear", "short", "formal"].includes(message.mode))
+      )
+        throw new Error("Frase ou objetivo inválido.");
+      if (message.action === "ai-load" || message.action === "ai-rewrite") {
+        if (settings.aiConsent !== true)
+          throw new Error(
+            "Ative a IA na janela inicial para autorizar o download local.",
+          );
+      }
+      await ensureOffscreen();
+      const jobId =
+        typeof message.jobId === "string" &&
+        /^[a-zA-Z0-9_-]{1,64}$/.test(message.jobId)
+          ? message.jobId
+          : "default";
+      const result = await chrome.runtime.sendMessage({
+        target: "grammarlio-offscreen",
+        action: message.action,
+        language,
+        text: message.text,
+        mode: message.mode,
+        context: message.context || "",
+        allowDownload: message.allowDownload === true,
+        owner: `${sender.tab?.id ?? "panel"}:${sender.frameId ?? 0}:${sender.documentId || sender.url}:${jobId}`,
+      });
+      return message.action === "ai-status"
+        ? {
+            ...result,
+            enabled: settings.aiConsent === true,
+            consent: settings.aiConsent === true,
+          }
+        : result;
+    }
     if (message.action === "add-word") {
       if (
         typeof message.word !== "string" ||
@@ -90,6 +187,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       action: message.action,
       language,
       personal,
+      personalByLanguage: settings.personal || {},
+      hint: ["pt-BR", "en-US", "es-ES"].includes(message.hint)
+        ? message.hint
+        : "pt-BR",
       text: message.text,
       word: message.word,
     });

@@ -1,4 +1,6 @@
 import styles from "./inline.css";
+import { attachInlineAi, rewriteCacheKey } from "./inline-ai.js";
+import { rewriteTarget } from "./rewrite-target.js";
 import {
   editingHost,
   eligible,
@@ -47,8 +49,28 @@ let field,
   popupIndex = null,
   frame,
   lastError = "";
-const ignored = new Set(),
-  languages = new WeakMap();
+let hitRegions = [],
+  hoverTimer,
+  closeTimer,
+  hoverIndex = null,
+  popupOrigin = "click",
+  popupEpoch = 0,
+  disposeAi;
+let warmTimer,
+  warmRunning = false,
+  warmJob;
+let lastGeometry = "";
+const aiCache = new Map();
+function closePopup() {
+  clearTimeout(hoverTimer);
+  clearTimeout(closeTimer);
+  popupEpoch++;
+  disposeAi?.();
+  disposeAi = undefined;
+  popup.hidden = true;
+  hoverIndex = null;
+}
+const ignored = new Set();
 let mutationObserver, resizeObserver;
 const MAX_INLINE = 12000;
 function node(tag, text, cls) {
@@ -64,19 +86,15 @@ function button(text, action, cls = "link") {
   return element;
 }
 function enabled() {
-  return (
-    !document.hidden &&
-    settings.inlineEnabled !== false &&
-    !settings.disabledSites?.includes(location.hostname)
-  );
+  return !document.hidden && settings.inlineEnabled !== false;
 }
 function languageFor(element) {
   const explicit = element.closest("[lang]")?.getAttribute("lang") || "";
-  return (
-    languages.get(element) ||
-    settings.language ||
-    (/^en(?:-|$)/i.test(explicit) ? "en-US" : "pt-BR")
-  );
+  return /^en(?:-|$)/i.test(explicit)
+    ? "en-US"
+    : /^es(?:-|$)/i.test(explicit)
+      ? "es-ES"
+      : "pt-BR";
 }
 async function request(action, args = {}) {
   const response = await chrome.runtime.sendMessage({
@@ -95,13 +113,21 @@ async function request(action, args = {}) {
   return response;
 }
 function clear() {
+  lastGeometry = "";
   clearTimeout(timer);
+  clearTimeout(warmTimer);
+  if (warmRunning) {
+    const jobId = warmJob;
+    warmRunning = false;
+    request("ai-cancel", { jobId }).catch(() => {});
+  }
   version++;
   findings = [];
   layer.replaceChildren();
   mirror.replaceChildren();
   badge.hidden = true;
-  popup.hidden = true;
+  hitRegions = [];
+  closePopup();
 }
 function disconnect() {
   clear();
@@ -109,6 +135,7 @@ function disconnect() {
   resizeObserver?.disconnect();
   field = undefined;
   data = undefined;
+  aiCache.clear();
 }
 function activate(element) {
   if (!enabled() || !eligible(element)) {
@@ -121,6 +148,7 @@ function activate(element) {
   ignored.clear();
   currentLanguage = languageFor(field);
   mutationObserver = new MutationObserver(() => {
+    lastGeometry = "";
     if (field && snapshot(field).text !== data?.text) schedule();
     else position();
   });
@@ -171,7 +199,11 @@ function schedule() {
       return;
     }
     try {
-      const result = await request("check", { text: data.text });
+      const result = await request("check", {
+        text: data.text,
+        language: "auto",
+        hint: languageFor(element),
+      });
       if (
         version !== revision ||
         field !== element ||
@@ -183,9 +215,12 @@ function schedule() {
         schedule();
         return;
       }
+      currentLanguage = result.language || languageFor(element);
       findings = result.result.filter(
         (f) =>
-          !ignored.has(`${currentLanguage}:${f.original.toLocaleLowerCase()}`),
+          !ignored.has(
+            `${f.language || currentLanguage}:${f.original.toLocaleLowerCase()}`,
+          ),
       );
       busy = false;
       badge.dataset.busy = "false";
@@ -193,6 +228,7 @@ function schedule() {
       badge.title = `Grammarlio · ${currentLanguage} · ${findings.length} sugestão(ões). Clique para revisar.`;
       badge.setAttribute("aria-label", badge.title);
       position();
+      warmTimer = setTimeout(() => warmAi(revision, element), 1100);
     } catch (error) {
       if (version === revision) {
         busy = false;
@@ -206,6 +242,80 @@ function schedule() {
       }
     }
   }, 450);
+}
+async function warmAi(revision, element) {
+  if (
+    version !== revision ||
+    field !== element ||
+    !enabled() ||
+    !settings.aiConsent ||
+    warmRunning
+  )
+    return;
+  const original = data.text,
+    finding = findings[0],
+    language = finding?.language || currentLanguage,
+    target = rewriteTarget(
+      original,
+      finding,
+      !finding &&
+        (field instanceof HTMLInputElement ||
+          field instanceof HTMLTextAreaElement)
+        ? { start: field.selectionStart, end: field.selectionEnd }
+        : undefined,
+    );
+  if (!finding && original.trim().split(/\s+/).length < 3) return;
+  if (!target || aiCache.has(rewriteCacheKey(language, target))) return;
+  let jobId;
+  try {
+    const state = await request("ai-status");
+    if (version !== revision || field !== element || !enabled()) return;
+    if (state.phase === "loading" || state.phase === "generating") {
+      warmTimer = setTimeout(() => warmAi(revision, element), 1300);
+      return;
+    }
+    if (state.phase === "error") return;
+    if (!state.ready) await request("ai-load", { allowDownload: true });
+    if (version !== revision || field !== element || !enabled()) return;
+    warmRunning = true;
+    warmJob =
+      jobId = `warm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const response = await request("ai-rewrite", {
+      text: target.original,
+      context: target.context,
+      mode: "clear",
+      language,
+      jobId: warmJob,
+    });
+    if (version === revision && field === element && !response.busy) {
+      aiCache.set(rewriteCacheKey(language, target), response.text);
+      if (aiCache.size > 8) aiCache.delete(aiCache.keys().next().value);
+      if (
+        !findings.length &&
+        response.text.trim() !== target.original.trim() &&
+        !ignored.has(`${language}:${target.original.toLocaleLowerCase()}`)
+      ) {
+        findings = [
+          {
+            id: "ai-rewrite",
+            category: "style",
+            language,
+            ...target,
+            message:
+              "Uma alternativa para deixar a frase mais natural. Revise antes de aceitar.",
+          },
+        ];
+        lastGeometry = "";
+        badge.textContent = "1";
+        position();
+      }
+    }
+    if (response.busy)
+      warmTimer = setTimeout(() => warmAi(revision, element), 1300);
+  } catch {
+  } finally {
+    if (jobId && warmJob === jobId) warmRunning = false;
+  }
 }
 function clipping(element) {
   const r = element.getBoundingClientRect();
@@ -325,7 +435,36 @@ function draw() {
   badge.hidden = false;
   badge.style.left = `${Math.max(clip.left, clip.right - 35)}px`;
   badge.style.top = `${Math.max(clip.top, clip.bottom - 29)}px`;
+  const style = getComputedStyle(field);
+  const geometry = [
+    version,
+    busy,
+    findings.length,
+    rect.x,
+    rect.y,
+    rect.width,
+    rect.height,
+    field.clientWidth,
+    field.clientHeight,
+    field.scrollTop,
+    field.scrollLeft,
+    clip.left,
+    clip.top,
+    clip.right,
+    clip.bottom,
+    style.font,
+    style.lineHeight,
+    style.letterSpacing,
+    style.padding,
+    style.textAlign,
+  ].join("|");
+  if (lastGeometry === geometry) {
+    if (!popup.hidden) placePopup();
+    return;
+  }
+  lastGeometry = geometry;
   layer.replaceChildren();
+  hitRegions = [];
   if (data && findings.length && !busy && !composing) {
     if (snapshot(field).text !== data.text) {
       schedule();
@@ -350,10 +489,20 @@ function draw() {
           right = Math.min(r.right, clip.right),
           top = r.bottom - 5;
         if (right <= left || top < clip.top || top + 5 > clip.bottom) return;
+        hitRegions.push({
+          index,
+          left,
+          right,
+          top: Math.max(r.top, clip.top),
+          bottom: Math.min(r.bottom, clip.bottom),
+        });
         const mark = button(
           "",
           () => open(index),
-          "mark" + (findings[index].category === "grammar" ? " grammar" : ""),
+          "mark" +
+            (["grammar", "style"].includes(findings[index].category)
+              ? " grammar"
+              : ""),
         );
         mark.tabIndex = -1;
         mark.setAttribute("aria-label", `Corrigir ${findings[index].original}`);
@@ -372,7 +521,9 @@ function draw() {
 }
 function placePopup() {
   if (!field) return;
-  const rect = field.getBoundingClientRect();
+  const anchor =
+    popupIndex !== null ? hitRegions.find((r) => r.index === popupIndex) : null;
+  const rect = anchor || field.getBoundingClientRect();
   popup.style.left = `${Math.max(10, Math.min(rect.left, innerWidth - popup.offsetWidth - 10))}px`;
   const below = rect.bottom + 8,
     above = rect.top - popup.offsetHeight - 8;
@@ -388,18 +539,26 @@ function popupNotice(text) {
   message.textContent = text;
   placePopup();
 }
-function open(index = null, focus = false) {
+function open(index = null, focus = false, origin = "click") {
   if (!field || composing) return;
+  clearTimeout(closeTimer);
+  clearTimeout(hoverTimer);
+  disposeAi?.();
+  disposeAi = undefined;
+  popupEpoch++;
+  const epoch = popupEpoch;
+  popupOrigin = origin;
   if (!focus && document.activeElement === host)
     field.focus({ preventScroll: true });
   popupIndex = index;
+  popup.classList.toggle("is-hover", origin === "hover");
   popup.replaceChildren();
   popup.hidden = false;
   const header = node("header", "grammarlio");
   const close = button(
     "×",
     () => {
-      popup.hidden = true;
+      closePopup();
       field?.focus({ preventScroll: true });
     },
     "close",
@@ -407,29 +566,6 @@ function open(index = null, focus = false) {
   close.setAttribute("aria-label", "Fechar sugestões");
   header.append(node("span", "LOCAL · SEM CONTA"), close);
   popup.append(header);
-  const row = node("label", undefined, "row");
-  row.append(node("span", "Idioma do texto"));
-  const select = node("select");
-  select.setAttribute("aria-label", "Idioma da revisão");
-  for (const [value, label] of [
-    ["pt-BR", "Português · Brasil"],
-    ["en-US", "English · US"],
-  ]) {
-    const option = node("option", label);
-    option.value = value;
-    select.append(option);
-  }
-  select.value = currentLanguage;
-  select.addEventListener("change", async () => {
-    currentLanguage = select.value;
-    languages.set(field, currentLanguage);
-    settings.language = currentLanguage;
-    field.focus({ preventScroll: true });
-    await chrome.storage.local.set({ language: currentLanguage });
-    schedule();
-  });
-  row.append(select);
-  popup.append(row);
   if (lastError) popup.append(node("p", lastError, "notice"));
   else if (busy) popup.append(node("p", "Verificando neste dispositivo…"));
   else if (data?.text.length > MAX_INLINE)
@@ -459,7 +595,13 @@ function open(index = null, focus = false) {
       popup.hidden = true;
       return;
     }
-    popup.append(node("h3", finding.original), node("p", finding.message));
+    popup.append(
+      node(
+        "h3",
+        finding.id === "ai-rewrite" ? "Melhorar frase" : finding.original,
+      ),
+      node("p", finding.message),
+    );
     const options = node("div", undefined, "options");
     popup.append(options);
     const apply = (replacement) => {
@@ -472,13 +614,17 @@ function open(index = null, focus = false) {
         popupNotice(error.message);
       }
     };
-    if (finding.replacement !== undefined)
+    if (finding.id === "ai-rewrite") options.hidden = true;
+    else if (finding.replacement !== undefined)
       options.append(
         button(finding.replacement, () => apply(finding.replacement), "option"),
       );
     else {
       options.append(node("p", "Buscando alternativas locais…"));
-      request("suggest", { word: finding.original })
+      request("suggest", {
+        word: finding.original,
+        language: finding.language || currentLanguage,
+      })
         .then((result) => {
           if (version !== revision || popupIndex !== index || popup.hidden)
             return;
@@ -501,7 +647,7 @@ function open(index = null, focus = false) {
     popup.append(
       button("Ignorar nesta edição", () => {
         ignored.add(
-          `${currentLanguage}:${finding.original.toLocaleLowerCase()}`,
+          `${finding.language || currentLanguage}:${finding.original.toLocaleLowerCase()}`,
         );
         field?.focus({ preventScroll: true });
         schedule();
@@ -512,7 +658,10 @@ function open(index = null, focus = false) {
         button("Adicionar ao meu dicionário", async () => {
           try {
             field?.focus({ preventScroll: true });
-            await request("add-word", { word: finding.original });
+            await request("add-word", {
+              word: finding.original,
+              language: finding.language || currentLanguage,
+            });
             schedule();
           } catch (error) {
             popupNotice(error.message);
@@ -520,26 +669,115 @@ function open(index = null, focus = false) {
         }),
       );
   }
+  if (!busy && !lastError && data && data.text.length <= MAX_INLINE) {
+    const revision = version,
+      element = field,
+      original = data.text;
+    const selection =
+      field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
+        ? { start: field.selectionStart, end: field.selectionEnd }
+        : undefined;
+    const selected = index !== null ? findings[index] : null;
+    const target =
+      selected?.id === "ai-rewrite"
+        ? selected
+        : rewriteTarget(
+            original,
+            selected,
+            index === null ? selection : undefined,
+          );
+    disposeAi = attachInlineAi({
+      parent: popup,
+      target,
+      language: findings[index]?.language || currentLanguage,
+      request,
+      cache: aiCache,
+      isCurrent: () =>
+        !popup.hidden &&
+        popupEpoch === epoch &&
+        version === revision &&
+        field === element &&
+        eligible(element),
+      position: placePopup,
+      accept: (range, replacement) => {
+        try {
+          if (version !== revision || field !== element || composing)
+            throw new Error(
+              "O texto mudou. Passe o mouse novamente para revisar.",
+            );
+          replaceInline(element, original, range, replacement);
+          schedule();
+        } catch (error) {
+          popupNotice(error.message);
+        }
+      },
+    });
+  }
+  const language = findings[index]?.language || currentLanguage;
   popup.append(
-    node("hr"),
-    button("Pausar neste site", async () => {
-      const saved = await chrome.storage.local.get("disabledSites");
-      await chrome.storage.local.set({
-        disabledSites: [
-          ...new Set([...(saved.disabledSites || []), location.hostname]),
-        ],
-      });
-      disconnect();
-    }),
+    node(
+      "p",
+      `${{ "pt-BR": "Português", "en-US": "English", "es-ES": "Español" }[language]} · idioma automático`,
+      "auto-language",
+    ),
   );
   placePopup();
   if (focus)
-    (popup.querySelector(".option") || popup.querySelector("select"))?.focus({
+    (
+      popup.querySelector(".option") ||
+      popup.querySelector(".finding") ||
+      popup.querySelector(".close")
+    )?.focus({
       preventScroll: true,
     });
 }
 badge.addEventListener("pointerdown", (event) => event.preventDefault());
 badge.addEventListener("click", (event) => open(null, event.detail === 0));
+document.addEventListener(
+  "pointermove",
+  (event) => {
+    if (!field || busy || composing) return;
+    const point = { x: event.clientX, y: event.clientY },
+      rect = popup.getBoundingClientRect();
+    if (
+      !popup.hidden &&
+      point.x >= rect.left &&
+      point.x <= rect.right &&
+      point.y >= rect.top &&
+      point.y <= rect.bottom
+    ) {
+      clearTimeout(closeTimer);
+      clearTimeout(hoverTimer);
+      return;
+    }
+    const hit = hitRegions.find(
+      (r) =>
+        point.x >= r.left &&
+        point.x <= r.right &&
+        point.y >= r.top &&
+        point.y <= r.bottom + 2,
+    );
+    if (hit) {
+      clearTimeout(closeTimer);
+      if (!popup.hidden && popupIndex === hit.index) return;
+      if (hoverIndex !== hit.index) {
+        clearTimeout(hoverTimer);
+        hoverIndex = hit.index;
+        hoverTimer = setTimeout(() => {
+          if (field && !busy) open(hit.index, false, "hover");
+        }, 180);
+      }
+    } else {
+      clearTimeout(hoverTimer);
+      hoverIndex = null;
+      if (!popup.hidden && popupOrigin === "hover") {
+        clearTimeout(closeTimer);
+        closeTimer = setTimeout(closePopup, 400);
+      }
+    }
+  },
+  true,
+);
 document.addEventListener(
   "focusin",
   (event) => {
@@ -598,7 +836,7 @@ document.addEventListener(
 document.addEventListener(
   "pointerdown",
   (event) => {
-    if (!event.composedPath().includes(host)) popup.hidden = true;
+    if (!event.composedPath().includes(host)) closePopup();
   },
   true,
 );
@@ -606,7 +844,7 @@ document.addEventListener(
   "keydown",
   (event) => {
     if (event.key === "Escape" && !popup.hidden) {
-      popup.hidden = true;
+      closePopup();
       field?.focus({ preventScroll: true });
     }
     if (
@@ -630,20 +868,23 @@ document.addEventListener("visibilitychange", () => {
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  for (const key of ["inlineEnabled", "disabledSites", "language", "personal"])
+  if (changes.aiConsent) {
+    settings.aiConsent = changes.aiConsent.newValue;
+    if (settings.aiConsent && field)
+      warmTimer = setTimeout(() => warmAi(version, field), 500);
+  }
+  if (!["inlineEnabled", "personal"].some((key) => changes[key])) return;
+  for (const key of ["inlineEnabled", "personal"])
     if (changes[key]) settings[key] = changes[key].newValue;
   if (!enabled()) disconnect();
   else if (field) {
-    currentLanguage = languageFor(field);
     schedule();
   } else activate(editingHost(document.activeElement));
 });
-chrome.storage.local
-  .get(["inlineEnabled", "disabledSites", "language"])
-  .then((value) => {
-    settings = value;
-    if (enabled()) activate(editingHost(document.activeElement));
-  });
+chrome.storage.local.get(["inlineEnabled", "aiConsent"]).then((value) => {
+  settings = value;
+  if (enabled()) activate(editingHost(document.activeElement));
+});
 setInterval(() => {
   if (!field) return;
   if (!field.isConnected || !eligible(field)) {

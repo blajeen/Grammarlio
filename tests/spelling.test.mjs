@@ -5,7 +5,8 @@ import {createDictionary,unknownWords,spellingOptions} from '../src/spelling.js'
 
 for (const [language,words,wrong,correction] of [
   ['en','The beautiful children received helpful messages yesterday.','beutiful','beautiful'],
-  ['pt','As crianças brasileiras escreveram mensagens úteis para os professores.','portugês','português']
+  ['pt','As crianças brasileiras escreveram mensagens úteis para os professores.','portugês','português'],
+  ['es','Las personas escribieron mensajes útiles para los profesores.','espanol','español']
 ]) {
   test(`Full ${language} dictionary accepts inflected words and suggests real corrections`,async()=>{
     const [aff,dic] = await Promise.all(['aff','dic'].map(ext=>readFile(`node_modules/dictionary-${language}/index.${ext}`,'utf8')));

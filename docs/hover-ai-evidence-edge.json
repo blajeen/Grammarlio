@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-04T14:16:17.952Z",
+  "browser": "msedge",
+  "cases": [
+    {
+      "language": "en-US",
+      "original": "Prefix stays.\nShe are happy to recieve the message.\nSuffix stays.",
+      "result": "She is happy to receive the message.",
+      "applied": "Prefix stays.\nShe is happy to receive the message.\nSuffix stays."
+    },
+    {
+      "language": "pt-BR",
+      "original": "Nós vai receber a mensagem.",
+      "result": "Nós vamos receber a mensagem.",
+      "applied": "Nós vamos receber a mensagem."
+    },
+    {
+      "language": "es-ES",
+      "original": "Las personas nesecitan ayuda.",
+      "result": "Las personas necesitan ayuda.",
+      "applied": "Las personas necesitan ayuda."
+    },
+    {
+      "language": "style",
+      "original": "Due to the fact that it was raining, we stayed inside.",
+      "result": "Due to the rain, we stayed inside.",
+      "applied": "Due to the rain, we stayed inside."
+    },
+    {
+      "language": "pt-BR",
+      "original": "Nós vai receber a mensagem.",
+      "result": "Nós vamos receber a mensagem.",
+      "applied": "Nós vamos receber a mensagem."
+    }
+  ],
+  "errors": [],
+  "offline": true,
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+  "passed": true
+}

@@ -1,4 +1,5 @@
 import { analyze } from "./rules.js";
+import { aiAction } from "./ai-service.js";
 let worker,
   sequence = 0,
   queue = Promise.resolve();
@@ -29,6 +30,12 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     sender.id !== chrome.runtime.id
   )
     return;
+  if (message.action?.startsWith("ai-")) {
+    aiAction(message).then(respond, (error) =>
+      respond({ error: error.message || String(error) }),
+    );
+    return true;
+  }
   const operation = queue
     .then(
       () =>
@@ -37,17 +44,36 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
           pending.set(id, { resolve, reject });
           getWorker().postMessage({
             id,
-            type: message.action === "check" ? "check" : "suggest",
+            type:
+              message.action === "check"
+                ? message.language === "auto"
+                  ? "auto"
+                  : "check"
+                : "suggest",
             language: message.language,
             text: message.text,
             word: message.word,
             personal: message.personal,
+            personalByLanguage: message.personalByLanguage,
+            hint: message.hint,
           });
         }),
     )
     .then((data) => {
       if (message.action === "suggest") return data;
-      const grammar = analyze(message.text, message.language);
+      const grammar = data.segments
+        ? data.segments.flatMap((part) =>
+            analyze(
+              message.text.slice(part.start, part.end),
+              part.language,
+            ).map((f) => ({
+              ...f,
+              start: f.start + part.start,
+              end: f.end + part.start,
+              language: part.language,
+            })),
+          )
+        : analyze(message.text, message.language);
       const spelling = data.result.filter(
         (s) => !grammar.some((g) => g.start < s.end && s.start < g.end),
       );
@@ -56,6 +82,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
           .sort((a, b) => a.start - b.start)
           .slice(0, 80),
         entries: data.entries,
+        language: data.language || message.language,
       };
     });
   queue = operation.catch(() => {});

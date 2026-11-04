@@ -1,41 +1,36 @@
 # Grammarlio
 
-A free, open source writing assistant for **Chrome and Edge**, supporting **American English and Brazilian Portuguese**. No account, subscription, remote inference or paid feature gates.
+Free, open source writing assistance for Chrome and Edge. **Brazilian Portuguese, American English and Spanish, detected from the text. No account or subscription. Processing stays in your browser.**
 
-**Experimental v0.3.0:** write directly in website text fields. Recognized issues are underlined; click an underline to see alternatives and apply a correction, with no panel import or account. Full selected Hunspell dictionaries include Brazilian Portuguese VERO (312,368 base entries) and American English SCOWL (49,568), plus inflections. Grammar rules remain limited. This is not feature or quality parity with Grammarly.
-
-Inline review supports text/search inputs, textareas and compatible contenteditable editors, including HTTP/HTTPS frames. Use the small ✦/count button for the language selector and issue list; **Ctrl+Alt+G** opens it and **Esc** closes it. Ignore a word, add it to your local personal dictionary, or pause this site. The side panel provides a global switch and a button to resume paused sites. Only the focused field in a visible page is reviewed. Passwords, recognized access codes and protected/read-only fields are excluded. A site can opt out with `data-grammarlio="off"`.
-
-The new feature requires content-script access to HTTP/HTTPS websites and an `offscreen` permission to run a shared local dictionary worker without opening the panel. Updating may require accepting site access in the browser. Text stays in the browser; no remote checking service is used. Reload existing website tabs after updating.
-
-Inline review accepts fields up to 12,000 characters and displays at most 80 findings per analysis; larger fields are declined without silently truncating. Google Docs/canvas, complex framework-owned editors, closed Shadow DOM, complex CSS transforms and native dialogs covering overlays are not guaranteed. Contextual AI rewriting remains in the side panel; inline checks use dictionaries/rules and need no GPU or model download.
-
-Unknown words offer spelling alternatives and an optional local personal dictionary, which you can clear. AI uses Qwen3 1.7B/WebLLM (~1 GB download) in-browser and requires a compatible WebGPU device. There is never a cloud inference fallback. A CPU alternative was evaluated and withheld because it failed editing-quality tests. See [actual validation results](VALIDATION.md).
+Experimental v0.4: write in a website field, pause, then hover an underlined word to see corrections and local AI rewriting. Accept to apply; generating a proposal never edits your writing automatically. Style alternatives can also appear in correctly spelled sentences. No import or editing panel. The popup offers one on/off switch and AI status/activation.
 
 ## Install
 
-1. Download `grammarlio-0.3.0.zip` from [Releases](https://github.com/blajeen/Grammarlio/releases) and extract it.
-2. Open `chrome://extensions` or `edge://extensions`.
-3. Enable Developer mode, choose Load unpacked and select the extracted folder containing `manifest.json`.
-4. Pin the extension and click its icon to open the side panel.
+1. Download `grammarlio-0.4.0.zip` from [Releases](https://github.com/blajeen/Grammarlio/releases) and extract it.
+2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode and choose Load unpacked.
+3. Select the folder containing `manifest.json`. The first-install window immediately offers AI activation: Yes downloads/prepares the model; Not now leaves basic corrections active without downloading it.
+4. Write in a supported website field and hover the underlines. The icon opens the global switch and lets you revisit activation.
 
-The extension is not yet listed in browser stores. Alternatively, clone the repository, install Node.js 22+, run `npm ci` and `npm run check`, then load `dist` as an unpacked extension.
+Not yet published in stores. Updates require replacing files, reloading the extension, accepting changed permissions if requested and reloading website tabs. Current UI: Portuguese.
 
-## Use
+## Local dictionaries and AI
 
-Focus a website text field and start typing. Click the underlines or ✦ button, select **English · US** if needed and accept suggestions directly in the field. For optional panel review, paste text or use Importar da página. Internal browser pages and store pages prohibit extension injection. Compatible rich editors support inline edits; canvas/Google Docs and complex editors do not have dedicated integrations.
+Full selected Hunspell files are bundled: Portuguese VERO (312,368 base entries), English SCOWL (49,568) and Spanish LibreOffice (57,344), plus affixes. These are complete open datasets, not every existing word. Grammar rules are limited. Automatic language detection works per sentence; short or ambiguous text can be misidentified.
 
-For AI, click the download/load button, wait for the model, then choose grammar correction, clarity, concision or professional tone. Context is optional. Review the generated text, use it in the editor, then copy or explicitly apply it to the original field. Page updates are refused if the field changed after import.
+Qwen3-1.7B q4f32_1/WebLLM runs locally. Activation downloads about **1 GB** of data from Hugging Face/file hosts and requires **WebGPU** with approximately **3 GB available graphics memory**. No writing/context is transmitted. JavaScript and WASM executable code are packaged. Cached data reloads automatically and can work offline if browser storage is retained. Consent also authorizes replacing missing model files. Turning off releases AI memory; turning on resumes automatic loading on next use. Without a compatible GPU, basic corrections remain available.
 
-The current interface is primarily Portuguese, with bilingual language and mode labels. Full interface translation is planned.
+No per-text fee or paid tiers. Computation, disk, electricity and downloads use the user's resources. No inference server or training on user writing.
 
-## Local AI requirements
+## Scope and privacy
 
-- Recent Chromium browser with WebGPU, supported GPU/driver and graphics acceleration enabled.
-- Qwen3-1.7B q4f32_1 via WebLLM. Its catalog estimates about **2.6 GB VRAM**; allow approximately 3 GB available graphics memory, with additional system memory overhead.
-- Initial model data download is on the order of **1 GB**. Downloads go directly to Hugging Face/file delivery hosts, not a Grammarlio server.
-- Cached model data can be reused offline, provided the download is complete and browser storage has not been evicted. Verify offline behavior on your device.
-- AI reloads into memory when reopening the panel. Devices without WebGPU still get full dictionaries and basic grammar rules; no silent cloud fallback exists.
-- 3,000-character text and 600-character context limits are technical constraints, not paid tiers. There are no user quotas. Truncated AI output is rejected.
+Supports text/search inputs, textareas and compatible contenteditable fields, including HTTP/HTTPS frames. Only the focused field in a visible page is reviewed. Passwords, identified sensitive/access-code fields, readonly/disabled and opted-out fields are excluded. Sites can use `data-grammarlio="off"` or `data-gramm="false"` on a field/ancestor. Canvas/Google Docs, complex editors, closed Shadow DOM, complex transforms and native dialogs are not guaranteed. Ctrl+Alt+G opens suggestions; Esc closes them.
 
-No text/context history is stored. Language, explicitly added personal words, pause preferences (including hostnames you explicitly pause) and model caches persist locally. Clear words/model cache and resume paused sites from the panel. See [Privacy](../PRIVACY.md), [Testing](TESTING.md), [Contributing](../CONTRIBUTING.md), [MIT license](../LICENSE) and [Third-party notices](../THIRD_PARTY_NOTICES.md). No affiliation with Grammarly, Google or Microsoft.
+Technical limits: 12,000 characters per field, 80 findings, 3,000-character sentence/selection per AI rewrite and 600 characters of neighboring context from the same field. Larger input is declined without truncation. AI may change meaning or make mistakes; review facts, names and numbers. This is not Grammarly quality or feature parity.
+
+No analytics, sync or saved writing history. Activation, AI consent and personal words persist locally; model data stays in cache. Text and results remain in memory. The original website retains its own policies. Remove data through browser storage controls or uninstall. See [Privacy](../PRIVACY.md).
+
+## Development
+
+Node.js 22+: `npm ci`, `npm run check`, `npx playwright install chromium`, `npm run test:browser`, `npm run test:inline`. Load `dist` unpacked. Optional real GPU test: `node scripts/hover-ai-test.mjs --browser=msedge --profile=artifacts/edge-ai`; use a separate profile for `--browser=chromium`.
+
+[Validation](VALIDATION.md) · [Testing](TESTING.md) · [Architecture](INLINE.md) · [Contributing](../CONTRIBUTING.md) · [Third-party notices](../THIRD_PARTY_NOTICES.md). Application code: MIT. No affiliation with Grammarly, Google or Microsoft.

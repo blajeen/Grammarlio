@@ -1,29 +1,26 @@
-# Revisão diretamente nos campos
+# Revisão nos campos — v0.4
 
-A versão 0.3 adiciona sublinhados e correções sem importar texto para o painel. O script de conteúdo é incluído em páginas e frames HTTP/HTTPS, mas só revisa o campo em foco de uma página visível. Não exige conta, GPU, download de modelo ou servidor. Os dicionários são os mesmos arquivos completos da extensão.
+Instale, responda à oferta inicial de IA e escreva. Sem importação, painel de edição ou escolha de idioma. Dicionários/regras já vêm ativos; a IA é preparada após Sim e carrega automaticamente nos próximos usos. O popup contém um controle global e estado/ativação da IA.
 
-## Uso
+Passe o mouse sobre a palavra sublinhada para abrir o cartão. Correções básicas oferecem alternativas; a IA reescreve a frase com contexto próximo do mesmo campo. Também pode propor estilo sem erro ortográfico. Só aceitar altera o texto. Ignore/adicionar palavra, Ctrl+Alt+G e Esc continuam disponíveis.
 
-1. Instale/atualize a extensão, aceite o acesso aos sites se o navegador solicitar e recarregue as abas existentes.
-2. Clique em um campo de texto e escreva. Após uma pausa, as sugestões aparecem sublinhadas. Vermelho identifica ortografia/pontuação; roxo identifica regras gramaticais.
-3. Clique no sublinhado para escolher uma alternativa, ignorar a palavra ou adicioná-la ao dicionário pessoal. A alteração só ocorre após aceitar.
-4. Use o botão ✦/contagem para listar sugestões e selecionar pt-BR/en-US. Ctrl+Alt+G abre a lista; Esc fecha.
-5. Para pausar apenas esse site, use Pausar neste site. No painel, use Reativar nos sites pausados ou desligue o controle global.
+## Arquitetura
 
-## Funcionamento
+- `inline.js`/`inline.css`: foco, debounce, hover com tolerância de saída, cartões e overlay isolado em Shadow DOM. Espelho tipográfico para input/textarea e ranges reais em contenteditable, sem spans no conteúdo. IME suspende análise até terminar.
+- `inline-dom.js`: elegibilidade, serialização/offsets Unicode e edição nativa conservadora para preservar eventos, desfazer e formatação. Confere todo o texto antes de aplicar e recusa resultados antigos.
+- `language.js`/`spell-worker.js`: detecção por frase usando palavras frequentes e cobertura das três bases Hunspell. Língua do site apenas desempata. Texto curto ou ambíguo pode ser mal classificado. `rules.js` fornece regras originais limitadas.
+- `background.js`: valida remetentes, limites, ativação e consentimento; mantém um documento offscreen compartilhado. Na instalação oferece IA e tenta ativar abas HTTP/HTTPS já abertas. Uma proteção impede inicialização duplicada do script.
+- `offscreen.js`: compartilha worker de dicionários e serviço de IA. Usa apenas `chrome.runtime` das APIs de extensão. Dicionários têm fila; IA permite consultar progresso enquanto carrega/gera.
+- `ai-service.js`/`inline-ai-worker.js`: uma instância WebLLM/WebGPU compartilhada, download autorizado, progresso, cancelamento, geração única e recarga do cache. Desligar termina o worker e cancela operações pendentes. Runtime WASM é local. Respostas são materializadas antes de gravar no cache, evitando a falha de streaming observada em uma instalação nova no worker da extensão.
+- `rewrite-target.js`/`inline-ai.js`: isolam frase/seleção e até 600 caracteres de contexto do mesmo campo, geram automaticamente, mostram e aplicam apenas após aceite. Cache temporário limitado no campo; resultados de outro texto/foco não são aplicados.
+- `welcome.js`/`popup.js`: oferta imediata Sim/Agora não, progresso/erro e controle global mínimo. Preferências persistentes: `aiConsent`, `inlineEnabled`, `personal`. Pesos ficam no cache.
 
-- `src/inline.js`: interface isolada em Shadow DOM, foco, debounce, composição IME, posições e ações. O overlay desenha sublinhados sem inserir spans no conteúdo original do editor. Para inputs/textarea, usa um espelho invisível com medidas tipográficas; em contenteditable, mede ranges reais.
-- `src/inline-dom.js`: elegibilidade, serialização de parágrafos, offsets e aplicação conservadora. Confere novamente o texto inteiro antes de editar, para recusar sugestões antigas. Usa edição nativa de Chromium para preservar input/undo e não substitui innerHTML.
-- `src/background.js`: valida mensagens, permissões lógicas de pausa, limites e palavras pessoais. Garante uma instância do documento interno invisível.
-- `src/offscreen.js`: organiza uma fila para um worker de dicionário compartilhado pela revisão direta. Isso mantém WASM e carregamento de dicionários fora da página e funciona sem painel aberto. O documento usa somente `chrome.runtime`, conforme as restrições da API offscreen.
-- `src/spell-worker.js`: Hunspell/WASM local, com os arquivos `.aff` e `.dic` incluídos. Gramática vem de `src/rules.js`. Não há chamada de rede para revisão.
+## Limites e exclusões
 
-As configurações `inlineEnabled`, `disabledSites`, `language` e `personal` são armazenadas localmente. `disabledSites` contém somente hostnames explicitamente pausados, não URLs ou histórico de navegação. Texto fica em memória durante a análise. A reescrita contextual por IA continua separada no painel.
+12.000 caracteres por campo, até 80 achados, frase/seleção de até 3.000 para IA e até 600 de contexto vizinho. Sem corte silencioso. O modelo pode alterar sentido; estilo é apresentado como alternativa, não erro certo.
 
-## Limites e opt-out
+Inputs de texto/busca, textarea e contenteditable comuns, inclusive frames HTTP/HTTPS. Só o campo em foco em página visível é revisado. Sem garantia para canvas/Google Docs, estruturas próprias, Shadow DOM fechado, CSS transformado ou camada superior nativa.
 
-Até 12.000 caracteres por campo, com até 80 achados por análise. Campos maiores exibem uma indicação, sem truncar silenciosamente. Foco em inputs de texto/busca, textarea e contenteditable comuns. A extensão não promete integração universal com frameworks, canvas/Google Docs, Shadow DOM fechado, CSS transformado ou interfaces na camada superior nativa do navegador.
+Senha, tipos sensíveis, códigos identificados, readonly/disabled, aria-readonly/aria-disabled e regiões inert/ocultas são excluídos. Sites podem usar `data-grammarlio="off"` ou `data-gramm="false"` no campo/ancestral. A identificação depende do site. O controle global suspende tudo. Atualizações manuais exigem recarregar abas existentes.
 
-Campos de senha, tipos sensíveis, códigos identificados, readonly/disabled, aria-readonly/aria-disabled e campos em regiões inert/ocultas são excluídos. Sites podem usar `data-grammarlio="off"` ou `data-gramm="false"` em um campo/ancestral. A proteção depende de como o site identifica seus campos; o usuário também pode pausar a revisão.
-
-Testes: `npm run test:inline` ou `node scripts/inline-test.mjs --browser=msedge`. Os testes usam páginas de exemplo locais e perfis de navegador isolados, nunca a sessão normal do usuário. Veja VALIDATION.md e os arquivos de evidência para os resultados reais.
+Veja [testes](TESTING.md), [resultados](VALIDATION.md) e [privacidade](../PRIVACY.md).

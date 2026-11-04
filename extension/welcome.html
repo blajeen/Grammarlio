@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bem-vindo ao Grammarlio</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body class="welcome">
+    <main>
+      <img
+        src="icons/icon-128.png"
+        width="68"
+        height="68"
+        alt="Ícone do Grammarlio"
+      />
+      <h1>Escreva. A gente ajuda.</h1>
+      <p>
+        As correções em português, inglês e espanhol já estão ativas. O idioma é
+        detectado automaticamente.
+      </p>
+      <section>
+        <h2>Ativar a reescrita com IA?</h2>
+        <p>
+          A IA roda neste navegador e sugere uma versão melhor da frase ao
+          passar o mouse sobre um erro.
+        </p>
+        <p class="muted">
+          Baixa cerca de 1 GB uma vez. Precisa de WebGPU e aproximadamente 3 GB
+          de memória gráfica disponível. Nenhum texto é enviado a um servidor.
+        </p>
+        <div id="choice">
+          <button id="yes">Sim, ativar IA</button
+          ><button id="no" class="secondary">Agora não</button>
+        </div>
+        <progress id="progress" max="1" value="0" hidden></progress>
+        <p id="status" role="status" aria-live="polite"></p>
+        <button id="finish" class="secondary" hidden>
+          Pronto, começar a escrever
+        </button>
+      </section>
+      <p class="muted small">
+        Sem conta. Sem assinatura.<br />Você pode ligar e desligar pelo ícone da
+        extensão.
+      </p>
+    </main>
+    <script type="module" src="welcome.js"></script>
+  </body>
+</html>

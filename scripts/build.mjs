@@ -40,15 +40,16 @@ if (!wasm || createHash('sha256').update(wasm).digest('hex') !== lock.wasmSha256
   if (createHash('sha256').update(wasm).digest('hex') !== lock.wasmSha256) throw new Error('Checksum inválido do runtime.');
   await writeFile(path.join(out,'model.wasm'),wasm);
 }
-await cp('extension',out,{recursive:true});
+for(const file of ['manifest.json','popup.html','welcome.html','app.css','offscreen.html'])await cp(`extension/${file}`,path.join(out,file));
+await cp('extension/icons',path.join(out,'icons'),{recursive:true});
 await mkdir(path.join(out,'dictionaries'),{recursive:true});
-for (const lang of ['en','pt']) {
+for (const lang of ['en','pt','es']) {
   for (const ext of ['aff','dic']) await cp(`node_modules/dictionary-${lang}/index.${ext}`,path.join(out,`dictionaries/${lang}.${ext}`));
   await cp(`node_modules/dictionary-${lang}/license`,path.join(out,`dictionaries/${lang}-LICENSE`));
 }
 await cp('node_modules/hunspell-wasm/wasm/hunspell.wasm',path.join(out,'hunspell.wasm'));
-await build({entryPoints:['src/panel.js','src/background.js','src/ai-worker.js','src/spell-worker.js','src/offscreen.js'],outdir:out,bundle:true,format:'esm',platform:'browser',target:'chrome116',legalComments:'eof',external:['fs/promises','module','fs','path','url']});
-await build({entryPoints:['src/inline.js'],outdir:out,bundle:true,format:'iife',platform:'browser',target:'chrome116',loader:{'.css':'text'},legalComments:'eof'});
+await build({entryPoints:['src/popup.js','src/welcome.js','src/background.js','src/inline-ai-worker.js','src/spell-worker.js','src/offscreen.js'],outdir:out,bundle:true,format:'esm',platform:'browser',target:'chrome116',legalComments:'eof',external:['fs/promises','module','fs','path','url']});
+await build({entryPoints:['src/inline.js'],outdir:out,bundle:true,format:'iife',platform:'browser',target:'chrome116',loader:{'.css':'text'},legalComments:'eof',banner:{js:'if (!globalThis.__grammarlioInlineActive) { globalThis.__grammarlioInlineActive = true;'},footer:{js:'}'}});
 await cp('LICENSE',path.join(out,'LICENSE'));
 await cp('THIRD_PARTY_NOTICES.md',path.join(out,'THIRD_PARTY_NOTICES.md'));
 await cp('node_modules/@mlc-ai/web-llm/LICENSE',path.join(out,'WEBLLM-LICENSE'));

@@ -1,31 +1,40 @@
-# Validation and manual acceptance
+# Testing v0.4
 
-## Inline review (v0.3)
+Node.js 22+: `npm ci`, `npm run check`, `npx playwright install chromium`. Tests use synthetic local HTTP fixtures and isolated profiles, never the user's normal browser session.
 
-Run `npm run test:inline` for Chromium/Chrome for Testing or `node scripts/inline-test.mjs --browser=msedge` for installed Edge. The fixture HTTP server is local and only serves synthetic text fields. No application server is needed by the extension itself. Each run uses a temporary isolated profile and tests the actual installed content script, service worker, offscreen document and dictionary worker together, without manually injecting the tested code.
+## Default checks — no model download
 
-Cases cover direct Portuguese/English correction, native undo, Unicode offsets, rich-text formatting, input events, stale-page-edit protection, sensitive/read-only fields, IME composition, personal words, language switching, scrolling, HTTP frames, site/global pause, keyboard actions, oversized fields and a website with a restrictive CSP. Tests record page errors and fail on any external HTTP(S) request during inline review. Evidence/screenshots are written under `artifacts/inline-*`.
+```sh
+npm run test:browser
+npm run test:inline
+node scripts/smoke.mjs --browser=msedge
+node scripts/inline-test.mjs --browser=msedge
+```
 
-Manually check typography/zoom and host-specific editor behavior before claiming support for a named third-party site. For a packaged build, pass `--extension-dir=dist-version` to test that directory. Native browser/store pages cannot be injected. Existing website tabs need reloading after an extension update.
+Smoke proves that the first-install AI window opens automatically, Not now prevents activation/downloads, the popup has one switch without text/language settings, and icons load at their required sizes. Inline acceptance tests the actual packaged content-script/background/offscreen/Hunspell combination: hover without clicking, automatic PT/EN/ES on an English website, mixed-language fields, native undo/events, rich-text preservation, Unicode, stale text, protected fields, IME, personal words/dismissal, frames, global switch and restrictive website CSP. Unexpected external requests or page errors fail the test. Evidence/screenshots go under ignored `artifacts/`.
 
-Automated checks: `npm run check`; browser smoke: `npx playwright install chromium` then `node scripts/smoke.mjs`.
+Node tests cover rules/prompts, actual dictionary inflections/suggestions, sentence language detection/offsets, rewrite scope/selection and oversized input. They do not establish general language quality.
 
-The smoke script uses an isolated temporary Chromium profile, not the user's normal profile. It loads the actual extension, opens its panel, exercises full dictionary loading, spelling alternatives, personal words and basic editing, and uses synthetic page fields to verify text replacement and stale-field protection. No large model is downloaded by this test. `--browser=msedge` selects installed Edge.
+## Actual GPU AI — optional large download
 
-Real model acceptance is separate: `node scripts/ai-acceptance.mjs --browser=msedge` for installed Edge and `node scripts/ai-acceptance.mjs --browser=chromium --profile=artifacts/chromium-ai-test-profile` for Chrome for Testing. It tests English and Portuguese generation, a contextual formal rewrite, accepting a proposal, and unloading/reloading and generating with the network disabled. Synthetic inputs and actual outputs are written to `artifacts/ai-evidence-*.json`, with screenshots. Profiles stay under ignored artifacts directories, never the user's normal browser profile. Use one running test per profile; choose a different `--profile=` for concurrent runs. Optional tests require large downloads, available memory and several minutes.
+```sh
+node scripts/hover-ai-test.mjs --browser=msedge --profile=artifacts/edge-ai
+node scripts/hover-ai-test.mjs --browser=chromium --profile=artifacts/chromium-ai
+```
 
-## Manual release checklist
+Requires compatible WebGPU, about 3 GB available graphics memory, disk and approximately 1 GB download per fresh profile. Never run two tests against one profile. Existing explicit test profiles reload the extension to avoid stale worker code after development builds. For first-install acceptance choose a directory that does not exist yet.
 
-- Load `dist` in current stable Chrome and Edge. Click the extension icon on an ordinary HTTPS page; verify the side panel opens.
-- Focus a textarea, select part of it, import, edit and apply. Ensure surrounding text remains intact. Change the original field after import; application must refuse to overwrite it.
-- Import a contenteditable field or page selection. Verify only copy is offered; rich formatting must not be rewritten.
-- Check password/payment/one-time-code inputs are not imported, and browser internal pages fail with a useful message.
-- Verify keyboard navigation, visible focus, status announcements and readability at 200% zoom.
-- Check Portuguese and English examples and manually enter clean text to inspect false positives.
-- In an environment with WebGPU and enough memory, activate the model and inspect download progress, errors and success. Watch network traffic: no writing or optional context should appear in remote requests.
-- Generate each mode in both languages. Check facts, names, numbers, unwanted instructions and unexpected language changes. This is a quality assessment, not proof of correctness.
-- Edit the text/change language while generating. The old result must not be accepted. Stop generation; partial output must not be offered as a complete rewrite.
-- After a complete download, disconnect internet, reopen the panel, reload AI and generate again. Verify the browser kept all model data. Do not claim universal offline support from a single device.
-- Unload AI, erase model cache, then test reactivation and a failed/interrupted download. Test a device/browser without a WebGPU adapter.
+The test chooses Yes in the activation window, waits for preparation, then hovers and accepts real generated rewrites in English, Portuguese and Spanish directly in website fields. Neighboring text is preserved and generation itself must not edit anything. It also checks an AI-only style suggestion and turns review off, disables network, turns it on and generates again from cache. No mocked model/server. Outputs/screenshots: `artifacts/hover-ai-*`.
 
-Store publication additionally requires store-specific review, listing assets, privacy disclosures and signing/submission. A successful unpacked build is not store approval.
+Pass `--extension-dir=dist-v0.4.0` to browser scripts to validate a release directory. Build a fresh package with `node scripts/build.mjs --out=dist-v0.4.0`.
+
+## Manual review before store publication
+
+- Install on current Chrome/Edge: confirm native activation window, progress, refusal/retry and basic review without GPU. Check already-open tabs.
+- Hover and enter the card, accept, check keyboard focus, announcements, Esc/Ctrl+Alt+G and 200% zoom.
+- Try clean/incorrect text in all languages, ambiguous short text, names/numbers and meaning changes. A few sentences are not a benchmark.
+- Edit/switch fields during generation: stale text must not be applied. Turn off during download/generation and resume.
+- Inspect network: model files may download after consent; writing/context must never appear. Check offline complete cache, eviction and interrupted downloads.
+- Validate real editors individually before claiming support. Internal browser/store pages and canvas editors are not supported integrations.
+
+Store listing, disclosures, assets and approval are separate from an unpacked build.

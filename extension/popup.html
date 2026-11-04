@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Grammarlio</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body class="compact">
+    <main>
+      <header>
+        <img src="icons/icon-48.png" width="34" height="34" alt="" /><strong
+          >Grammarlio</strong
+        ><label class="switch"
+          ><input
+            id="enabled"
+            type="checkbox"
+            checked
+            aria-label="Ligar Grammarlio" /><span></span
+        ></label>
+      </header>
+      <p id="status" role="status">Ativo nos campos dos sites.</p>
+      <p class="muted">
+        Português · English · Español<br />Idioma automático. Sem conta.
+      </p>
+      <p id="ai-status" class="muted" role="status">Verificando IA local…</p>
+      <button id="activate" class="link" hidden>Ativar reescrita com IA</button>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

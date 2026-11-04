@@ -44,3 +44,8 @@ test('editing modes use examples in the selected language',()=>{
   assert.equal(JSON.parse(messages.at(-1).content).text,'Uma frase');
   assert.equal(messages[2].role,'assistant');
 });
+test('Spanish prompts use Spanish instead of Portuguese examples',()=>{
+  const messages=rewriteMessages('Las personas necesita ayuda.','es-ES','clear');
+  assert.match(messages[0].content,/Write in Spanish/);
+  assert.match(messages[2].content,/Creo que/);
+});
