@@ -1,10 +1,24 @@
 {
   "manifest_version": 3,
   "name": "Grammarlio — English & Português",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Assistente de escrita local em inglês e português. Sem conta, sem envio de textos e sem recursos pagos.",
   "minimum_chrome_version": "116",
-  "permissions": ["activeTab", "scripting", "storage", "sidePanel"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel",
+    "offscreen"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["inline.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
   "action": { "default_title": "Abrir Grammarlio" },
   "background": { "service_worker": "background.js", "type": "module" },
   "side_panel": { "default_path": "panel.html" },

@@ -1,0 +1,177 @@
+:host {
+  all: initial;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  font-family: system-ui, sans-serif;
+  color: #243c35;
+}
+* {
+  box-sizing: border-box;
+}
+.layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.mirror {
+  position: fixed;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+.mark {
+  position: fixed;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  --line-color: #d45250;
+  /* A CSS-only wave also works on sites whose CSP forbids data: images. */
+  background: radial-gradient(
+      ellipse 3px 2px at 3px 0,
+      transparent 65%,
+      var(--line-color) 70%,
+      var(--line-color) 95%,
+      transparent 100%
+    )
+    0 100% / 6px 3px repeat-x;
+  height: 7px;
+  min-width: 3px;
+}
+.mark.grammar {
+  --line-color: #8358bd;
+}
+.badge {
+  position: fixed;
+  pointer-events: auto;
+  cursor: pointer;
+  min-width: 30px;
+  height: 25px;
+  padding: 0 7px;
+  border: 1px solid #ceded2;
+  border-radius: 15px;
+  background: #f7fcf7;
+  color: #285640;
+  box-shadow: 0 2px 8px #14362820;
+  font: 700 11px system-ui;
+}
+.badge[data-busy="true"] {
+  opacity: 0.65;
+}
+.popup {
+  position: fixed;
+  pointer-events: auto;
+  width: 320px;
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #fffefa;
+  border: 1px solid #d6dfd3;
+  border-radius: 14px;
+  box-shadow: 0 12px 45px #142d3233;
+  padding: 16px;
+  font: 13px/1.5 system-ui;
+  color: #243c35;
+}
+.popup header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 750;
+  gap: 12px;
+}
+.popup header span {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #637464;
+}
+.popup h3 {
+  font: 650 15px system-ui;
+  margin: 15px 0 5px;
+  overflow-wrap: anywhere;
+}
+.popup p {
+  margin: 9px 0;
+  color: #637464;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.popup button,
+.popup select {
+  font: 600 12px system-ui;
+  border-radius: 7px;
+  padding: 9px 11px;
+  cursor: pointer;
+  border: 1px solid #d6dfd3;
+  color: #285640;
+  background: #f0f4eb;
+}
+.popup select {
+  padding: 6px;
+  max-width: 160px;
+}
+.popup button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.popup .options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 13px 0;
+}
+.popup .option {
+  background: #285640;
+  color: white;
+  border-color: #285640;
+}
+.popup .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 11px 0;
+}
+.popup .link {
+  border: 0;
+  padding: 5px 0;
+  background: none;
+  color: #526e56;
+  text-align: left;
+  font-weight: 500;
+}
+.popup .close {
+  padding: 3px 8px;
+  border: 0;
+  background: none;
+  font-size: 18px;
+}
+.popup .finding {
+  display: block;
+  text-align: left;
+  width: 100%;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  background: #f7f8f0;
+}
+.popup .notice {
+  color: #94542f;
+}
+.popup hr {
+  border: 0;
+  border-top: 1px solid #e2e6dc;
+  margin: 12px 0;
+}
+.popup :focus-visible,
+.badge:focus-visible {
+  outline: 2px solid #487b59;
+  outline-offset: 3px;
+}
+[hidden] {
+  display: none !important;
+}

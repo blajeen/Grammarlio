@@ -1,4 +1,30 @@
-# Validation record — v0.2.0
+# Validation record — v0.3.0
+
+## Inline review
+
+The actual extension content script, background service worker, offscreen document and packaged Hunspell worker were tested together on synthetic HTTP pages in Chromium/Chrome for Testing and installed Edge. No panel import was used for these corrections. The test exercises seventeen scenarios:
+
+1. Portuguese spelling/grammar accepted directly in a textarea.
+2. English dictionary corrections in an input, with native undo.
+3. Emoji/Unicode offsets preserving surrounding text.
+4. Contenteditable corrections preserving bold text and surrounding paragraphs.
+5. Input events updating a site-controlled value.
+6. A later page edit refusing an old suggestion.
+7. Passwords, access codes, readonly fields and per-field opt-out excluded.
+8. IME composition waiting until compositionend.
+9. Ignoring findings and adding a word to the personal dictionary in the inline popup.
+10. Inline language selection changing dictionaries.
+11. Scrolled textareas keeping marks clipped inside the field.
+12. HTTP iframe editing in the frame's own content script.
+13. Site pause and panel-based resume.
+14. Global pause and resume.
+15. Ctrl+Alt+G and Escape keyboard actions.
+16. Oversized fields being declined without silent truncation.
+17. Inline styling and correction on a website with restrictive script/style/image/connect CSP directives. Underlines use pure CSS rather than data-URL images, avoiding the img-src violation found during testing.
+
+The tests record zero external HTTP(S) requests and no page errors during inline review. This is evidence for the tested pages and scenarios, not a claim of compatibility with every third-party editor. The inline feature uses bundled dictionaries/rules, not the GPU model. It is independent of the AI rewriting feature below. See INLINE.md for architecture, permissions, limits and opt-out controls.
+
+## Existing grammar, dictionaries and AI validation
 
 Date: 2026-11-04. Environment: Windows, Node.js 24.18.0, isolated browser profiles. GPU generation was tested in installed Edge 156, using the actual extension panel and packaged worker/runtime, not an external inference server.
 

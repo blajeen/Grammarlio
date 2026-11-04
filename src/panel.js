@@ -222,6 +222,9 @@ $('delete-model').onclick = async () => {
   finally { setBusy(false); }
 };
 $('clear-personal').onclick = async()=>{personal['en-US']=[];personal['pt-BR']=[];await chrome.storage.local.set({personal});update();notice('Dicionário pessoal apagado.');};
+chrome.storage.local.get('inlineEnabled').then(value=>{$('inline-enabled').checked=value.inlineEnabled!==false;});
+$('inline-enabled').onchange=async()=>{await chrome.storage.local.set({inlineEnabled:$('inline-enabled').checked});$('inline-status').textContent=$('inline-enabled').checked?'Revisão direta ativada. Clique em um campo do site.':'Revisão direta pausada em todos os sites.';};
+$('resume-sites').onclick=async()=>{await chrome.storage.local.set({disabledSites:[]});$('inline-status').textContent='Revisão reativada nos sites pausados.';};
 chrome.storage.local.get(['language','personal']).then(({language,personal:saved}) => {
   for(const lang of ['pt-BR','en-US']) if(Array.isArray(saved?.[lang])) personal[lang]=saved[lang].filter(w=>typeof w==='string' && w.length<=100).slice(0,5000);
   if (['pt-BR','en-US'].includes(language)) { $('language').value = language; editor.lang = language; }

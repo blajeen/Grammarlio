@@ -1,5 +1,13 @@
 # Validation and manual acceptance
 
+## Inline review (v0.3)
+
+Run `npm run test:inline` for Chromium/Chrome for Testing or `node scripts/inline-test.mjs --browser=msedge` for installed Edge. The fixture HTTP server is local and only serves synthetic text fields. No application server is needed by the extension itself. Each run uses a temporary isolated profile and tests the actual installed content script, service worker, offscreen document and dictionary worker together, without manually injecting the tested code.
+
+Cases cover direct Portuguese/English correction, native undo, Unicode offsets, rich-text formatting, input events, stale-page-edit protection, sensitive/read-only fields, IME composition, personal words, language switching, scrolling, HTTP frames, site/global pause, keyboard actions, oversized fields and a website with a restrictive CSP. Tests record page errors and fail on any external HTTP(S) request during inline review. Evidence/screenshots are written under `artifacts/inline-*`.
+
+Manually check typography/zoom and host-specific editor behavior before claiming support for a named third-party site. For a packaged build, pass `--extension-dir=dist-version` to test that directory. Native browser/store pages cannot be injected. Existing website tabs need reloading after an extension update.
+
 Automated checks: `npm run check`; browser smoke: `npx playwright install chromium` then `node scripts/smoke.mjs`.
 
 The smoke script uses an isolated temporary Chromium profile, not the user's normal profile. It loads the actual extension, opens its panel, exercises full dictionary loading, spelling alternatives, personal words and basic editing, and uses synthetic page fields to verify text replacement and stale-field protection. No large model is downloaded by this test. `--browser=msedge` selects installed Edge.

@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-04T11:39:09.269Z",
+  "browser": "chromium",
+  "cases": [
+    "Portuguese grammar and spelling applied directly",
+    "English dictionary alternatives and native undo",
+    "Unicode emoji offsets preserve surrounding text",
+    "Contenteditable correction preserves surrounding formatting and paragraphs",
+    "Controlled field receives the native input event",
+    "Stale suggestions refuse to overwrite a later page edit",
+    "Passwords, access codes, read-only fields and per-field opt-out are excluded",
+    "IME composition waits until the user finishes composing",
+    "Ignore and personal dictionary work from the inline popup",
+    "Inline language selector changes the dictionary",
+    "Textarea scroll keeps the underline clipped inside the field",
+    "HTTP iframe text field is reviewed in its own frame",
+    "Site pause and panel resume work without an account",
+    "Global pause and resume are respected by the page",
+    "Keyboard shortcut opens suggestions and Escape closes them",
+    "Oversized fields are declined without silently truncating text",
+    "Inline UI and correction work under a restrictive website CSP"
+  ],
+  "externalRequests": [],
+  "errors": [],
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "extensionVersion": "0.3.0",
+  "passed": true
+}
