@@ -2,11 +2,13 @@
 
 A free, open source writing assistant for **Chrome and Edge**, supporting **American English and Brazilian Portuguese**. No account, subscription, remote inference or paid feature gates.
 
-**Experimental v0.1.0:** basic rules cover only a small set of common mistakes. AI rewrites use a small local model and can be wrong. This is not feature or quality parity with Grammarly.
+**Experimental v0.2.0:** full selected Hunspell dictionary files are now bundled: Brazilian Portuguese VERO (312,368 base entries) and American English SCOWL (49,568), plus inflections. Grammar rules remain limited. “Full dictionary” does not mean every possible word/name/technical term, or word definitions. This is not feature or quality parity with Grammarly.
+
+Unknown words offer spelling alternatives and an optional local personal dictionary, which you can clear. AI uses Qwen3 1.7B/WebLLM (~1 GB download) in-browser and requires a compatible WebGPU device. There is never a cloud inference fallback. A CPU alternative was evaluated and withheld because it failed editing-quality tests. See [actual validation results](VALIDATION.md).
 
 ## Install
 
-1. Download `grammarlio-0.1.0.zip` from [Releases](https://github.com/blajeen/Grammarlio/releases) and extract it.
+1. Download `grammarlio-0.2.0.zip` from [Releases](https://github.com/blajeen/Grammarlio/releases) and extract it.
 2. Open `chrome://extensions` or `edge://extensions`.
 3. Enable Developer mode, choose Load unpacked and select the extracted folder containing `manifest.json`.
 4. Pin the extension and click its icon to open the side panel.
@@ -27,7 +29,7 @@ The current interface is primarily Portuguese, with bilingual language and mode 
 - Qwen3-1.7B q4f32_1 via WebLLM. Its catalog estimates about **2.6 GB VRAM**; allow approximately 3 GB available graphics memory, with additional system memory overhead.
 - Initial model data download is on the order of **1 GB**. Downloads go directly to Hugging Face/file delivery hosts, not a Grammarlio server.
 - Cached model data can be reused offline, provided the download is complete and browser storage has not been evicted. Verify offline behavior on your device.
-- AI reloads into memory when reopening the panel. Devices without WebGPU still get basic rules; no silent cloud fallback exists.
+- AI reloads into memory when reopening the panel. Devices without WebGPU still get full dictionaries and basic grammar rules; no silent cloud fallback exists.
 - 3,000-character text and 600-character context limits are technical constraints, not paid tiers. There are no user quotas. Truncated AI output is rejected.
 
-No text/context history is stored. Only the selected language and cached model files persist. See [Privacy](../PRIVACY.md), [Testing](TESTING.md), [Contributing](../CONTRIBUTING.md), [MIT license](../LICENSE) and [Third-party notices](../THIRD_PARTY_NOTICES.md). No affiliation with Grammarly, Google or Microsoft.
+No text/context history is stored. The selected language, words explicitly added to your personal dictionary and cached model files persist locally. You can clear personal words and the current model cache from the panel. See [Privacy](../PRIVACY.md), [Testing](TESTING.md), [Contributing](../CONTRIBUTING.md), [MIT license](../LICENSE) and [Third-party notices](../THIRD_PARTY_NOTICES.md). No affiliation with Grammarly, Google or Microsoft.

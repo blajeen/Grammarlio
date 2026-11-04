@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-04T10:55:29.346Z",
+  "browser": "chromium",
+  "backend": "gpu",
+  "cases": [
+    {
+      "language": "en-US",
+      "mode": "correct",
+      "text": "She are happy to recieve the message.",
+      "context": "",
+      "result": "She is happy to receive the message.",
+      "offline": false,
+      "milliseconds": 38600
+    },
+    {
+      "language": "pt-BR",
+      "mode": "correct",
+      "text": "As pessoas precisa de ajuda.",
+      "context": "",
+      "result": "As pessoas estão necessitadas de ajuda.",
+      "offline": false,
+      "milliseconds": 4061
+    },
+    {
+      "language": "en-US",
+      "mode": "formal",
+      "text": "Send the report by Friday.",
+      "context": "Professional email to a colleague. The deadline is Friday.",
+      "result": "Please send the report by Friday.",
+      "offline": false,
+      "milliseconds": 3291
+    },
+    {
+      "language": "pt-BR",
+      "mode": "correct",
+      "text": "Nós vai receber a mensagem.",
+      "context": "",
+      "result": "Nós vamos receber a mensagem.",
+      "offline": true,
+      "milliseconds": 36616
+    }
+  ],
+  "offline": true,
+  "errors": [],
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36"
+}

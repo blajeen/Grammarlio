@@ -1,6 +1,6 @@
 {
   "name": "grammarlio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Local-first English and Portuguese writing assistant for Chrome and Edge",
@@ -8,8 +8,18 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "test:browser": "node scripts/smoke.mjs",
+    "test:ai": "node scripts/ai-acceptance.mjs"
   },
-  "dependencies": { "@mlc-ai/web-llm": "0.2.87" },
-  "devDependencies": { "esbuild": "0.28.2", "@playwright/test": "1.56.1" }
+  "dependencies": {
+    "@mlc-ai/web-llm": "0.2.87",
+    "dictionary-en": "4.0.0",
+    "dictionary-pt": "4.0.0",
+    "hunspell-wasm": "0.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "esbuild": "0.28.2"
+  }
 }

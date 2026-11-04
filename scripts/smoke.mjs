@@ -5,10 +5,10 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {captureField,replaceField} from '../src/page.js';
 
-const profile = await mkdtemp(path.join(tmpdir(),'grammarlio-test-'));
-const extension = path.resolve('dist');
-const gpuFlags = process.argv.includes('--software-gpu') ? ['--use-angle=swiftshader','--enable-unsafe-webgpu','--use-webgpu-adapter=swiftshader'] : [];
-const context = await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`,...gpuFlags]});
+const profile = process.argv.includes('--keep-profile') ? path.resolve('artifacts/ai-test-profile') : await mkdtemp(path.join(tmpdir(),'grammarlio-test-'));
+const extension = path.resolve(process.argv.find(arg=>arg.startsWith('--extension-dir='))?.slice(16) || 'dist');
+const channel = process.argv.find(a=>a.startsWith('--browser='))?.split('=')[1] || 'chromium';
+const context = await chromium.launchPersistentContext(profile,{channel,headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`]});
 try {
   let [worker] = context.serviceWorkers();
   worker ||= await context.waitForEvent('serviceworker');
@@ -19,7 +19,10 @@ try {
   panel.on('pageerror',e=>errors.push(e.message));
   context.on('request',r=>{if (/^https?:/.test(r.url())) remote.push(r.url());});
   await panel.goto(`chrome-extension://${id}/panel.html`);
+  await panel.waitForFunction(()=>document.getElementById('dictionary-status').textContent.includes('entradas-base'));
+  await panel.locator('#language').selectOption('pt-BR');
   await panel.locator('#example').click();
+  await panel.waitForFunction(()=>document.getElementById('dictionary-status').textContent.includes('entradas-base'));
   await panel.locator('.suggestion').first().waitFor();
   assert.equal(await panel.locator('.suggestion').count(),3);
   await panel.locator('.suggestion button').first().click();
@@ -28,12 +31,29 @@ try {
   assert.match(await panel.locator('#editor').inputValue(),/^Nós vai/);
   await panel.locator('#language').selectOption('en-US');
   await panel.locator('#example').click();
+  await panel.waitForFunction(()=>document.getElementById('dictionary-status').textContent.includes('entradas-base'));
   assert.equal(await panel.locator('.suggestion').count(),4);
   assert.equal(await panel.locator('#rewrite').isDisabled(),true);
   await panel.locator('#editor').fill('<img src=x onerror=alert(1)> teh');
   assert.equal(await panel.locator('#suggestions img').count(),0);
+  for (const [language,text,word,replacement] of [['pt-BR','Eu estudo portugês.','portugês','português'],['en-US','A beutiful garden.','beutiful','beautiful']]) {
+    await panel.locator('#language').selectOption(language);
+    await panel.locator('#editor').fill(text);
+    const card=panel.locator('.suggestion').filter({hasText:word});
+    await card.getByRole('button',{name:'Ver opções'}).click();
+    await card.getByRole('button',{name:replacement,exact:true}).click();
+    assert.equal(await panel.locator('#editor').inputValue(),text.replace(word,replacement));
+  }
+  await panel.locator('#editor').fill('Grammarlio');
+  await panel.getByRole('button',{name:'Adicionar ao meu dicionário'}).click();
+  await panel.waitForFunction(()=>document.getElementById('dictionary-status').textContent.includes('0 palavra(s)'));
+  const saved=await panel.evaluate(()=>chrome.storage.local.get('personal'));
+  assert.ok(saved.personal['en-US'].includes('Grammarlio'));
+  await panel.locator('#clear-personal').click();
+  await panel.getByRole('button',{name:'Adicionar ao meu dicionário'}).waitFor();
   assert.deepEqual(errors,[]);
   assert.deepEqual(remote,[],'No network requests before explicit AI activation');
+  const initialRequestCount=remote.length;
   await mkdir('artifacts',{recursive:true});
   await panel.locator('#language').selectOption('pt-BR');
   await panel.locator('#example').click();
@@ -74,5 +94,5 @@ try {
       console.log('Real local AI generation:',result);
     } finally { clearInterval(timer); }
   }
-  console.log(JSON.stringify({extensionLoaded:true,panelErrors:errors,remoteRequestsBeforeAI:remote.length,fieldRoundTrip:true,staleEditProtected:true,passwordBlocked:true,webgpuAdapter:gpu,screenshot:'artifacts/panel.png'},null,2));
+  console.log(JSON.stringify({extensionLoaded:true,panelErrors:errors,remoteRequestsBeforeAI:initialRequestCount,fieldRoundTrip:true,staleEditProtected:true,passwordBlocked:true,webgpuAdapter:gpu,screenshot:'artifacts/panel.png'},null,2));
 } finally { await context.close(); }

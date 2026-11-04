@@ -2,7 +2,9 @@
 
 Automated checks: `npm run check`; browser smoke: `npx playwright install chromium` then `node scripts/smoke.mjs`.
 
-The smoke script uses an isolated temporary Chromium profile, not the user's normal profile. It loads the actual extension, opens its panel, exercises basic editing and uses synthetic page fields to verify text replacement and stale-field protection. No large model is downloaded by this test.
+The smoke script uses an isolated temporary Chromium profile, not the user's normal profile. It loads the actual extension, opens its panel, exercises full dictionary loading, spelling alternatives, personal words and basic editing, and uses synthetic page fields to verify text replacement and stale-field protection. No large model is downloaded by this test. `--browser=msedge` selects installed Edge.
+
+Real model acceptance is separate: `node scripts/ai-acceptance.mjs --browser=msedge` for installed Edge and `node scripts/ai-acceptance.mjs --browser=chromium --profile=artifacts/chromium-ai-test-profile` for Chrome for Testing. It tests English and Portuguese generation, a contextual formal rewrite, accepting a proposal, and unloading/reloading and generating with the network disabled. Synthetic inputs and actual outputs are written to `artifacts/ai-evidence-*.json`, with screenshots. Profiles stay under ignored artifacts directories, never the user's normal browser profile. Use one running test per profile; choose a different `--profile=` for concurrent runs. Optional tests require large downloads, available memory and several minutes.
 
 ## Manual release checklist
 

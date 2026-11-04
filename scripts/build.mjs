@@ -7,7 +7,9 @@ import {fileURLToPath} from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 process.chdir(root);
-const out = path.join(root,'dist');
+const outName = process.argv.find(arg=>arg.startsWith('--out='))?.slice(6) || 'dist';
+if (!/^dist(?:-[a-zA-Z0-9.-]+)?$/.test(outName)) throw new Error('Use uma pasta de saída dist ou dist-versao.');
+const out = path.join(root,outName);
 await mkdir(out,{recursive:true});
 let lock;
 try { lock = JSON.parse(await readFile('model-lock.json','utf8')); }
@@ -39,8 +41,16 @@ if (!wasm || createHash('sha256').update(wasm).digest('hex') !== lock.wasmSha256
   await writeFile(path.join(out,'model.wasm'),wasm);
 }
 await cp('extension',out,{recursive:true});
-await build({entryPoints:['src/panel.js','src/background.js','src/ai-worker.js'],outdir:out,bundle:true,format:'esm',platform:'browser',target:'chrome116',legalComments:'eof'});
+await mkdir(path.join(out,'dictionaries'),{recursive:true});
+for (const lang of ['en','pt']) {
+  for (const ext of ['aff','dic']) await cp(`node_modules/dictionary-${lang}/index.${ext}`,path.join(out,`dictionaries/${lang}.${ext}`));
+  await cp(`node_modules/dictionary-${lang}/license`,path.join(out,`dictionaries/${lang}-LICENSE`));
+}
+await cp('node_modules/hunspell-wasm/wasm/hunspell.wasm',path.join(out,'hunspell.wasm'));
+await build({entryPoints:['src/panel.js','src/background.js','src/ai-worker.js','src/spell-worker.js'],outdir:out,bundle:true,format:'esm',platform:'browser',target:'chrome116',legalComments:'eof',external:['fs/promises','module','fs','path','url']});
 await cp('LICENSE',path.join(out,'LICENSE'));
 await cp('THIRD_PARTY_NOTICES.md',path.join(out,'THIRD_PARTY_NOTICES.md'));
 await cp('node_modules/@mlc-ai/web-llm/LICENSE',path.join(out,'WEBLLM-LICENSE'));
-console.log('Extensão gerada em dist/. Runtime WASM local verificado por SHA-256.');
+await cp('third_party/MPL-2.0.txt',path.join(out,'dictionaries/MPL-2.0.txt'));
+for (const file of ['COPYING','COPYING.LESSER','COPYING.MPL']) await cp(`node_modules/hunspell-wasm/${file}`,path.join(out,`dictionaries/HUNSPELL-${file}`));
+console.log(`Extensão gerada em ${outName}/. Runtime WASM local verificado por SHA-256.`);

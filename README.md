@@ -4,25 +4,34 @@
 
 [English guide](docs/README.en.md) · [Privacidade](PRIVACY.md) · [Contribuir](CONTRIBUTING.md)
 
-> **Versão 0.1.0 — experimental.** Esta é uma primeira versão funcional, não uma alternativa com a mesma cobertura ou qualidade do Grammarly. A revisão básica tem poucas regras; a IA depende de WebGPU e da memória do dispositivo. Não há recursos pagos ou cotas de conta. Há limites técnicos descritos abaixo.
+> **Versão 0.2.0 — experimental.** Sem assinatura ou recursos pagos. Agora inclui dicionários completos das bases Hunspell selecionadas, com flexões, e IA local por GPU testada com gerações reais. Ainda não tem a cobertura ou a qualidade do Grammarly. Há limites técnicos descritos abaixo.
+
+## Novidades da versão 0.2
+
+- Português brasileiro: **312.368 entradas-base** VERO/LibreOffice; inglês americano: **49.568 entradas-base** SCOWL, mais flexões. Os arquivos completos `.aff` e `.dic` são incluídos na extensão e funcionam offline.
+- Ortografia por Hunspell/WebAssembly, sugestões de grafia sob demanda e palavras pessoais salvas só no dispositivo. É possível apagar esse dicionário pessoal no painel.
+- “Dicionário completo” significa usar as bases abertas completas; não significa conter toda palavra existente, definições, nomes ou termos técnicos. A gramática continua tendo cobertura inicial.
+- IA com Qwen3 1.7B via WebLLM (~1 GB de download e ~3 GB de memória gráfica). Exige WebGPU. Não existe fallback para servidor. Uma alternativa por CPU foi avaliada e não incluída por falhar nos testes de qualidade de edição.
+- A falha gráfica original foi reproduzida no Chromium antigo da automação; os navegadores Chrome e Edge instalados conseguiram criar dispositivos WebGPU. A integração recebe uma verificação real de `requestDevice`, além de detectar o adaptador.
+- Geração real, testes em português/inglês e recarga offline são documentados em [docs/VALIDATION.md](docs/VALIDATION.md). Esses testes não garantem qualidade universal.
 
 ## O que já faz
 
 - Painel lateral para revisar texto sem sair da página.
-- Regras locais originais para alguns erros comuns em pt-BR e en-US, com sugestões que você pode aceitar individualmente.
+- Dicionários locais completos das bases selecionadas, além de regras gramaticais originais para alguns erros comuns em pt-BR e en-US. Sugestões são aceitas individualmente.
 - IA local para corrigir, melhorar clareza, encurtar ou ajustar formalidade; contexto opcional.
 - Importação do campo de texto ou trecho selecionado, somente quando você solicita.
 - Aplicação em `textarea` e `input` de texto/busca, com proteção contra sobrescrever um campo que mudou desde a importação.
 - Em editores ricos, importa texto para revisão e permite copiar o resultado. Não substitui o HTML nem a formatação.
 - Desfazer a última alteração no editor do painel, copiar resultado, desligar IA e apagar o modelo baixado.
 
-**Ainda não faz:** sublinhado automático em toda página, dicionário ortográfico completo, integração própria com Google Docs, edição de campos dentro de iframes/Shadow DOM, sincronização, suporte móvel ou funcionamento garantido em todos os sites. O recurso de desfazer do painel não desfaz edições já aplicadas na página.
+**Ainda não faz:** sublinhado automático em toda página, integração própria com Google Docs, edição de campos dentro de iframes/Shadow DOM, sincronização, suporte móvel ou funcionamento garantido em todos os sites. O recurso de desfazer do painel não desfaz edições já aplicadas na página.
 
 ## Instalar no Chrome ou Edge
 
 ### Opção A — download pronto
 
-1. Abra [Releases](https://github.com/blajeen/Grammarlio/releases) e baixe `grammarlio-0.1.0.zip`.
+1. Abra [Releases](https://github.com/blajeen/Grammarlio/releases) e baixe `grammarlio-0.2.0.zip`.
 2. Extraia o ZIP para uma pasta permanente. Não tente carregar o ZIP diretamente.
 3. No Chrome, abra `chrome://extensions`. No Edge, abra `edge://extensions`.
 4. Ative **Modo do desenvolvedor**.
@@ -65,21 +74,21 @@ Usamos **Qwen3-1.7B**, quantizado para WebLLM (`q4f32_1`). O conhecimento lingu�
 - Os dados do modelo vêm do Hugging Face e podem ser redirecionados à sua infraestrutura de arquivos. O texto do usuário não faz parte dessas requisições.
 - Após o download completo, os arquivos são mantidos no cache do navegador. O navegador pode apagar o cache por falta de espaço ou configuração; nesse caso será necessário baixar novamente. O modo offline deve ser verificado no seu dispositivo.
 - A IA precisa ser carregada novamente na memória ao reabrir o painel. Fechar o painel pode interromper a geração.
-- Sem WebGPU, as regras básicas continuam disponíveis. Não há fallback silencioso para servidor.
+- Sem WebGPU, os dicionários e as regras continuam disponíveis. A IA desta versão exige GPU compatível. Não há fallback silencioso para servidor.
 
-Textos no editor são limitados a **3.000 caracteres**, e o contexto opcional a 600, para controlar uso de memória e latência. Esse é um limite técnico desta versão, não um plano pago. Nenhum texto é cortado silenciosamente na importação. Sugestões longas/truncadas são rejeitadas.
+Textos no editor são limitados a **3.000 caracteres**, e o contexto opcional a 600, para controlar uso de memória e latência. A geração aceita até 1.800 tokens de resposta. Esses são limites técnicos, não planos pagos. Nenhum texto é cortado silenciosamente na importação. Sugestões longas/truncadas são rejeitadas. **Apagar modelo baixado** remove o cache do modelo atual.
 
 Um modelo pequeno pode errar, alterar o sentido ou seguir instruções contidas no próprio texto. O prompt orienta preservar fatos, mas não oferece garantia. Sempre revise nomes, números e significado antes de aceitar. A qualidade em ambos os idiomas precisa de avaliação comunitária.
 
 ## Privacidade e permissões
 
-Não há cadastro, telemetria, anúncios, servidor de revisão ou armazenamento de textos/contexto. Só o idioma escolhido é salvo em `chrome.storage.local`; os arquivos do modelo ficam no cache. Veja [PRIVACY.md](PRIVACY.md).
+Não há cadastro, telemetria, anúncios, servidor de revisão ou histórico de textos/contexto. O idioma e as palavras que você escolhe adicionar ao dicionário pessoal são salvos em `chrome.storage.local`; os arquivos dos modelos ficam no cache. Veja [PRIVACY.md](PRIVACY.md).
 
 | Permissão | Motivo |
 | --- | --- |
 | `activeTab` | Acesso temporário à página em que você acionou a extensão |
 | `scripting` | Importar um trecho e aplicar uma alteração solicitada |
-| `storage` | Lembrar o idioma escolhido |
+| `storage` | Lembrar o idioma e as palavras pessoais localmente |
 | `sidePanel` | Mostrar o editor na lateral |
 
 Não pedimos acesso permanente a todos os sites. O código não é injetado continuamente em suas páginas.
@@ -93,14 +102,23 @@ npx playwright install chromium
 node scripts/smoke.mjs
 ```
 
-Os testes verificam regras bilíngues, posições de edição, proteção contra sugestões antigas e composição do prompt. O teste de navegador carrega a extensão em Chromium e verifica painel, importação/aplicação em campos de teste, bloqueio de senha e ausência de requisições de rede antes da ativação da IA. Ele não baixa o modelo nem valida a qualidade das reescritas. Use `node scripts/smoke.mjs --ai` para tentar o teste opcional de download e geração em uma GPU compatível. Consulte [docs/TESTING.md](docs/TESTING.md) para os testes manuais e [o registro de validação desta versão](docs/VALIDATION.md): a geração real ainda não foi confirmada, pois a inicialização da GPU falhou no ambiente de desenvolvimento.
+Os testes verificam regras bilíngues, flexões reais dos dicionários, sugestões de grafia, posições de edição, palavras pessoais e proteção contra sugestões antigas. O teste padrão de navegador carrega a extensão e verifica o painel, campos de teste e ausência de rede antes da IA; não baixa modelos.
+
+Para testes reais opcionais de IA (download grande, perfil isolado em `artifacts/`):
+
+```sh
+node scripts/ai-acceptance.mjs --browser=msedge
+node scripts/ai-acceptance.mjs --browser=chromium --profile=artifacts/chromium-ai-test-profile
+```
+
+O primeiro usa o Edge instalado; o segundo usa Chrome for Testing (Chromium), ambos com WebGPU. Verifique os resultados de geração, contexto e recarga offline em [docs/VALIDATION.md](docs/VALIDATION.md) e o procedimento em [docs/TESTING.md](docs/TESTING.md). Para diagnóstico gráfico sem modificar drivers: `node scripts/gpu-diagnose.mjs`.
 
 O projeto não exige servidor. Hospedagem/distribuição de arquivos, publicação em lojas e trabalho de manutenção podem ter custos para o mantenedor.
 
 ## Próximas etapas
 
 - Avaliar precisão e falsos positivos em corpora de pt-BR e en-US com licenças adequadas.
-- Expandir regras e adicionar dicionários com atribuição e licenças documentadas.
+- Expandir regras e avaliar a cobertura dos dicionários, preservando atribuição e licenças.
 - Melhorar feedback de download, recuperação de falhas e acessibilidade.
 - Adicionar sugestões junto aos campos e integrações específicas com editores ricos.
 - Validar o pacote e os avisos de privacidade para publicação nas lojas Chrome/Edge.
