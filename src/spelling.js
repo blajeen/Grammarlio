@@ -1,8 +1,45 @@
 import { createHunspellFromStrings } from "hunspell-wasm";
 
-export async function createDictionary(aff, dic) {
+export async function createDictionary(aff, dic, supplement) {
+  const primary = await createHunspellFromStrings(aff, dic);
+  if (supplement) {
+    let extra;
+    try {
+      extra = await createHunspellFromStrings(supplement.aff, supplement.dic);
+    } catch (error) {
+      primary.dispose();
+      throw error;
+    }
+    const roots = new Set(
+      [dic, supplement.dic].flatMap((list) =>
+        list
+          .split(/\r?\n/)
+          .slice(1)
+          .filter(Boolean)
+          .map((line) => line.split("/")[0]),
+      ),
+    );
+    return {
+      entries: roots.size,
+      spell: {
+        testSpelling: (word) =>
+          primary.testSpelling(word) || extra.testSpelling(word),
+        // Keep common-word suggestions first; rare supplemental words are fallback.
+        getSpellingSuggestions: (word) => [
+          ...new Set([
+            ...primary.getSpellingSuggestions(word),
+            ...extra.getSpellingSuggestions(word),
+          ]),
+        ],
+        dispose() {
+          primary.dispose();
+          extra.dispose();
+        },
+      },
+    };
+  }
   return {
-    spell: await createHunspellFromStrings(aff, dic),
+    spell: primary,
     entries: Number.parseInt(dic.split(/\r?\n/, 1)[0], 10),
   };
 }
@@ -42,9 +79,19 @@ export function unknownWords(text, dictionary, personal = []) {
   return findings;
 }
 
-export function spellingOptions(word, dictionary) {
+export function spellingOptions(word, dictionary, alternatives = []) {
   if (word.length > 40) return [];
-  return dictionary.spell
+  const options = dictionary.spell
     .getSpellingSuggestions(word.normalize("NFC").replaceAll("’", "'"))
     .slice(0, 5);
+  // A short borrowed word may be assigned the surrounding language. Avoid an
+  // empty card when another already-bundled language recognizes its correction.
+  if (options.length) return options;
+  return [
+    ...new Set(
+      alternatives
+        .filter((other) => other !== dictionary)
+        .flatMap((other) => spellingOptions(word, other)),
+    ),
+  ].slice(0, 5);
 }

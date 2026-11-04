@@ -1,0 +1,10 @@
+{
+  "version": "2026.02.25",
+  "url": "https://github.com/en-wl/wordlist/releases/download/rel-2026.02.25/hunspell-en_US-large-2026.02.25.zip",
+  "archiveSha256": "06ab5a2a12c29033f100988d3b0a5e53dcad40bf2473ccb78270619d1da99321",
+  "files": {
+    "en_US-large.aff": "9d735348967bd9dd4673b8a0e3ddefd591f296055e13848f8fafaad1879c964d",
+    "en_US-large.dic": "9bb5338d7cda1eae537086c232918a5d07935a97ae88d52e3d4c373bed7b745b",
+    "README_en_US-large.txt": "c42c16d65349909f41f6ddcdac54c7838ce42249aa2f91256d91c13fcf760cfc"
+  }
+}

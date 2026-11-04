@@ -3,11 +3,37 @@ import { attachInlineAi, rewriteCacheKey } from "./inline-ai.js";
 import { rewriteTarget } from "./rewrite-target.js";
 import {
   editingHost,
+  focusedEditor,
   eligible,
   snapshot,
   domRange,
   replaceInline,
 } from "./inline-dom.js";
+
+const listeners = [];
+function listen(target, type, handler, options) {
+  target.addEventListener(type, handler, options);
+  listeners.push({
+    target,
+    type,
+    handler,
+    options,
+    scope:
+      target === window ? "window" : target === document ? "document" : null,
+  });
+}
+function restoreListeners() {
+  for (const { target, type, handler, options, scope } of listeners) {
+    // Re-adding the same listener is idempotent. Editor document.open() and
+    // designMode initialization can erase listeners while retaining our DOM.
+    (scope === "window"
+      ? window
+      : scope === "document"
+        ? document
+        : target
+    ).addEventListener(type, handler, options);
+  }
+}
 
 const host = document.createElement("div");
 host.setAttribute("data-grammarlio-root", "");
@@ -420,10 +446,15 @@ function position() {
   frame = requestAnimationFrame(draw);
 }
 function draw() {
+  restoreListeners();
   if (!field || !eligible(field) || !enabled()) {
     if (field) disconnect();
     return;
   }
+  // A native modal makes siblings inert regardless of their z-index. Keep the
+  // overlay in the same top-layer dialog as its editor so it stays clickable.
+  const container = field.closest("dialog[open]") || document.documentElement;
+  if (host.parentElement !== container) container.append(host);
   const rect = field.getBoundingClientRect(),
     clip = clipping(field);
   if (clip.right <= clip.left || clip.bottom <= clip.top) {
@@ -731,9 +762,10 @@ function open(index = null, focus = false, origin = "click") {
       preventScroll: true,
     });
 }
-badge.addEventListener("pointerdown", (event) => event.preventDefault());
-badge.addEventListener("click", (event) => open(null, event.detail === 0));
-document.addEventListener(
+listen(badge, "pointerdown", (event) => event.preventDefault());
+listen(badge, "click", (event) => open(null, event.detail === 0));
+listen(
+  window,
   "pointermove",
   (event) => {
     if (!field || busy || composing) return;
@@ -778,7 +810,8 @@ document.addEventListener(
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "focusin",
   (event) => {
     if (event.composedPath().includes(host)) return;
@@ -786,9 +819,12 @@ document.addEventListener(
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "input",
   (event) => {
+    const editor = editingHost(event.composedPath()[0]);
+    if (editor && editor !== field) activate(editor);
     if (
       field &&
       (event.composedPath().includes(field) || field.contains(event.target))
@@ -797,23 +833,22 @@ document.addEventListener(
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "focusout",
   () => {
     // A microtask can run between native blur and focus, while activeElement is
     // temporarily body. Wait until the complete focus transition has finished.
     setTimeout(() => {
-      let active = document.activeElement;
-      if (active === host) return; // The inline dialog is editing this field.
-      while (active?.shadowRoot?.activeElement)
-        active = active.shadowRoot.activeElement;
-      const next = editingHost(active);
+      if (document.activeElement === host) return; // The card is editing this field.
+      const next = focusedEditor();
       if (next !== field) activate(next);
     }, 0);
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "compositionstart",
   (event) => {
     if (field && (event.target === field || field.contains(event.target))) {
@@ -823,7 +858,8 @@ document.addEventListener(
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "compositionend",
   () => {
     if (composing) {
@@ -833,14 +869,20 @@ document.addEventListener(
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "pointerdown",
   (event) => {
-    if (!event.composedPath().includes(host)) closePopup();
+    if (!event.composedPath().includes(host)) {
+      closePopup();
+      const editor = editingHost(event.composedPath()[0]);
+      if (editor) activate(editor);
+    }
   },
   true,
 );
-document.addEventListener(
+listen(
+  document,
   "keydown",
   (event) => {
     if (event.key === "Escape" && !popup.hidden) {
@@ -860,11 +902,11 @@ document.addEventListener(
   },
   true,
 );
-document.addEventListener("scroll", position, true);
-window.addEventListener("resize", position);
-document.addEventListener("visibilitychange", () => {
+listen(document, "scroll", position, true);
+listen(window, "resize", position);
+listen(document, "visibilitychange", () => {
   if (document.hidden) disconnect();
-  else if (enabled()) activate(editingHost(document.activeElement));
+  else if (enabled()) activate(focusedEditor());
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
@@ -879,14 +921,25 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (!enabled()) disconnect();
   else if (field) {
     schedule();
-  } else activate(editingHost(document.activeElement));
+  } else activate(focusedEditor());
 });
 chrome.storage.local.get(["inlineEnabled", "aiConsent"]).then((value) => {
   settings = value;
-  if (enabled()) activate(editingHost(document.activeElement));
+  if (enabled()) activate(focusedEditor());
 });
 setInterval(() => {
-  if (!field) return;
+  // Rich-text editors may document.open()/write() their initial blank frame,
+  // replacing the DOM and removing document listeners after our injection.
+  if (!host.isConnected && document.documentElement) {
+    disconnect();
+    document.documentElement.append(host);
+  }
+  restoreListeners();
+  if (!field) {
+    const active = focusedEditor();
+    if (active && active !== host && enabled()) activate(active);
+    return;
+  }
   if (!field.isConnected || !eligible(field)) {
     disconnect();
     return;

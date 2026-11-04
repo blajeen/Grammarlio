@@ -1,6 +1,6 @@
 {
   "name": "grammarlio",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "Local-first English, Portuguese and Spanish writing assistant for Chrome and Edge",
@@ -11,7 +11,8 @@
     "check": "npm test && npm run build",
     "test:browser": "node scripts/smoke.mjs",
     "test:ai": "node scripts/hover-ai-test.mjs",
-    "test:inline": "node scripts/inline-test.mjs"
+    "test:inline": "node scripts/inline-test.mjs",
+    "test:editors": "node scripts/editor-test.mjs"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "0.2.87",

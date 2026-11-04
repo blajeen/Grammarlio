@@ -1,4 +1,4 @@
-# Testing v0.4
+# Testing v0.4.1
 
 Node.js 22+: `npm ci`, `npm run check`, `npx playwright install chromium`. Tests use synthetic local HTTP fixtures and isolated profiles, never the user's normal browser session.
 
@@ -26,7 +26,7 @@ Requires compatible WebGPU, about 3 GB available graphics memory, disk and appro
 
 The test chooses Yes in the activation window, waits for preparation, then hovers and accepts real generated rewrites in English, Portuguese and Spanish directly in website fields. Neighboring text is preserved and generation itself must not edit anything. It also checks an AI-only style suggestion and turns review off, disables network, turns it on and generates again from cache. No mocked model/server. Outputs/screenshots: `artifacts/hover-ai-*`.
 
-Pass `--extension-dir=dist-v0.4.0` to browser scripts to validate a release directory. Build a fresh package with `node scripts/build.mjs --out=dist-v0.4.0`.
+Pass `--extension-dir=dist-v0.4.1` to browser scripts to validate a release directory. Build a fresh package with `node scripts/build.mjs --out=dist-v0.4.1`.
 
 ## Manual review before store publication
 
@@ -38,3 +38,7 @@ Pass `--extension-dir=dist-v0.4.0` to browser scripts to validate a release dire
 - Validate real editors individually before claiming support. Internal browser/store pages and canvas editors are not supported integrations.
 
 Store listing, disclosures, assets and approval are separate from an unpacked build.
+
+## Embedded note editor regression
+
+Run `npm run test:editors`, or `node scripts/editor-test.mjs --browser=msedge`. It verifies `knowldge → knowledge` by hovering real glyphs and clicking the proposed correction in nested rich text, srcdoc, about:blank/designMode, document.open/write after extension startup, editors becoming editable after focus, open Shadow DOM and a native modal. It checks formatting, zero external requests and page errors. Evidence: artifacts/editor-evidence-*.json. This fixture does not access the user’s live Pipedrive account.

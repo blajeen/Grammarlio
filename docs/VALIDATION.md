@@ -1,4 +1,10 @@
-# Validation record — v0.4.0
+# Validation record — v0.4.1 / v0.4.0
+
+## v0.4.1 compatibility update
+
+20 Node tests passed, including expanded English vocabulary, exact `knowldge → knowledge` ranking, borrowed-word fallback and browser-validated embedded-frame senders. Inline acceptance passed 15 cases in both Edge and Chromium. Seven additional editor regressions passed in both browsers: rich text, srcdoc, about:blank/designMode, document.open/write recovery, late editable activation, open Shadow DOM and native modals. They use actual hover/click corrections, with no external requests or page errors. See [compatibility evidence and Pipedrive limitation](COMPATIBILITY.md). The actual user's Pipedrive editor has not been directly inspected. The GPU inference evidence below belongs to v0.4.0; this patch does not change the model/prompt.
+
+## v0.4.0 inference and initial validation
 
 Date: 2026-11-04. Windows, Node.js 24.18.0, isolated profiles, installed Edge 156 and Playwright Chromium/Chrome for Testing 156. Tests used the actual extension, service worker, offscreen document, Hunspell and WebLLM workers. No inference server or mocked AI was used.
 

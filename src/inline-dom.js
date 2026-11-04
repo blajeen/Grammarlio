@@ -6,9 +6,17 @@ export function editingHost(element) {
   )
     return element;
   if (!element.isContentEditable) return null;
-  while (element.parentElement?.isContentEditable)
+  if (document.designMode === "on") return document.body;
+  while (element.parentElement?.isContentEditable && element !== document.body)
     element = element.parentElement;
   return element;
+}
+
+export function focusedEditor() {
+  let active = document.activeElement;
+  while (active?.shadowRoot?.activeElement)
+    active = active.shadowRoot.activeElement;
+  return editingHost(active);
 }
 
 export function eligible(element) {

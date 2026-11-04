@@ -1,3 +1,4 @@
+import { isContentSender } from "./sender.js";
 chrome.runtime.onInstalled.addListener(async (details) => {
   const { aiConsent } = await chrome.storage.local.get("aiConsent");
   await chrome.storage.local.remove([
@@ -64,7 +65,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     );
   if (
     message?.target !== "grammarlio-background" ||
-    (!panel && (!sender.tab || !/^https?:/.test(sender.url || "")))
+    (!panel && !isContentSender(sender, chrome.runtime.id))
   )
     return;
   (async () => {

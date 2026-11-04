@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-04T16:54:38.199Z",
+  "browser": "chromium",
+  "cases": [
+    "Nested rich-text note: whole-word hover knowldge → knowledge",
+    "srcdoc iframe with editable body and Portuguese site hint",
+    "about:blank iframe with document.designMode",
+    "Editor document.open/write after extension startup recovers automatically",
+    "Editor becomes editable after focus without a new focus event",
+    "Open Shadow DOM text field",
+    "Note inside a native modal dialog"
+  ],
+  "externalRequests": [],
+  "errors": [],
+  "extensionVersion": "0.4.1",
+  "passed": true
+}

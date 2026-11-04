@@ -1,0 +1,4 @@
+# Preserve upstream dictionary bytes: build verifies their published-source hashes.
+third_party/en-us-large/*.aff -text whitespace=-blank-at-eol
+third_party/en-us-large/*.dic -text whitespace=-blank-at-eol
+third_party/en-us-large/README_*.txt -text whitespace=-blank-at-eol

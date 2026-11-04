@@ -48,6 +48,13 @@ for (const lang of ['en','pt','es']) {
   await cp(`node_modules/dictionary-${lang}/license`,path.join(out,`dictionaries/${lang}-LICENSE`));
 }
 await cp('node_modules/hunspell-wasm/wasm/hunspell.wasm',path.join(out,'hunspell.wasm'));
+const dictionarySource=JSON.parse(await readFile('third_party/en-us-large/source.json','utf8'));
+for(const [name,sha256] of Object.entries(dictionarySource.files)) {
+  const bytes=await readFile(`third_party/en-us-large/${name}`);
+  if(createHash('sha256').update(bytes).digest('hex')!==sha256)throw new Error(`Checksum inválido do dicionário: ${name}`);
+  const target=name.endsWith('.aff')?'en-large.aff':name.endsWith('.dic')?'en-large.dic':'en-large-LICENSE';
+  await writeFile(path.join(out,'dictionaries',target),bytes);
+}
 await build({entryPoints:['src/popup.js','src/welcome.js','src/background.js','src/inline-ai-worker.js','src/spell-worker.js','src/offscreen.js'],outdir:out,bundle:true,format:'esm',platform:'browser',target:'chrome116',legalComments:'eof',external:['fs/promises','module','fs','path','url']});
 await build({entryPoints:['src/inline.js'],outdir:out,bundle:true,format:'iife',platform:'browser',target:'chrome116',loader:{'.css':'text'},legalComments:'eof',banner:{js:'if (!globalThis.__grammarlioInlineActive) { globalThis.__grammarlioInlineActive = true;'},footer:{js:'}'}});
 await cp('LICENSE',path.join(out,'LICENSE'));

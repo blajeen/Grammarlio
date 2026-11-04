@@ -1,12 +1,12 @@
 # Privacidade / Privacy
 
-Atualização / Updated: 2026-11-04 · v0.4.0
+Atualização / Updated: 2026-11-04 · v0.4.1
 
 ## Português
 
 Grammarlio processa textos no navegador. Não exige conta e não possui servidor de revisão, telemetria, anúncios, rastreadores ou histórico de escrita.
 
-- **Revisão:** scripts empacotados atuam em páginas e frames HTTP/HTTPS. Leem o campo em foco da página visível após pausas e conferem edições posteriores para posicionar sublinhados e recusar sugestões antigas. Não coletam a página inteira ou histórico de navegação. Na instalação tentam ativar abas HTTP/HTTPS já abertas.
+- **Revisão:** scripts empacotados atuam em páginas e frames HTTP/HTTPS, incluindo frames internos about:blank/srcdoc/blob com origem HTTP/HTTPS herdada e validada pelo navegador. Leem o campo em foco da página visível após pausas e conferem edições posteriores para posicionar sublinhados e recusar sugestões antigas. Não coletam a página inteira ou histórico de navegação. Na instalação tentam ativar abas HTTP/HTTPS já abertas.
 - **Processamento:** mensagens internas levam texto a workers locais de Hunspell e, após ativação, WebLLM em um documento invisível (`offscreen`). Não são requisições de rede. A IA usa uma frase/seleção e até 600 caracteres vizinhos do mesmo campo. Texto, contexto, respostas e um pequeno cache temporário ficam na memória, sem histórico salvo.
 - **Consentimento:** a janela inicial oferece Sim/Agora não. Antes do Sim não há download do modelo. Sim autoriza download inicial e recargas automáticas, inclusive baixar arquivos ausentes após perda do cache. Agora não mantém correções básicas e permite ativar depois pelo ícone/cartão. Desligar suspende revisão e libera a IA, preservando cache e consentimento.
 - **Dados locais:** `chrome.storage.local` guarda `inlineEnabled`, `aiConsent` e palavras adicionadas explicitamente ao dicionário pessoal por idioma. Sem sincronização de conta ou lista de sites visitados. Preferências antigas de idioma/pausa por site são removidas na atualização. Apague dados pelos controles do navegador ou desinstale.
@@ -19,7 +19,7 @@ Abra issues sem incluir textos privados, senhas ou dados pessoais.
 
 ## English
 
-Grammarlio processes writing locally without an account, review server, analytics, ads, trackers or writing history. Packaged scripts read the focused field in a visible HTTP/HTTPS page/frame after typing pauses and check later edits. Installation also attempts to activate already-open eligible tabs. Full-page text and browsing history are not collected.
+Grammarlio processes writing locally without an account, review server, analytics, ads, trackers or writing history. Packaged scripts read the focused field in a visible HTTP/HTTPS page/frame, including related about:blank/srcdoc/blob frames whose inherited HTTP/HTTPS origin is validated by the browser after typing pauses and check later edits. Installation also attempts to activate already-open eligible tabs. Full-page text and browsing history are not collected.
 
 Internal messages pass text to local Hunspell/WebLLM workers in an invisible extension document; they are not network requests. AI uses one sentence/selection and up to 600 neighboring characters from the same field. Text, context, responses and temporary suggestions stay in memory, not saved history.
 

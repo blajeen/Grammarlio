@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Grammarlio",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Correções e reescrita local em português, inglês e espanhol. Idioma automático, sugestões ao passar o mouse e sem conta.",
-  "minimum_chrome_version": "116",
+  "minimum_chrome_version": "119",
   "permissions": ["scripting", "storage", "offscreen"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "content_scripts": [
@@ -11,7 +11,9 @@
       "matches": ["http://*/*", "https://*/*"],
       "js": ["inline.js"],
       "run_at": "document_idle",
-      "all_frames": true
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true
     }
   ],
   "icons": {

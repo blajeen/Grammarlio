@@ -4,7 +4,7 @@
 
 [English guide](docs/README.en.md) · [Privacidade](PRIVACY.md) · [Contribuir](CONTRIBUTING.md)
 
-## Versão 0.4 — escreva direto no site
+## Versão 0.4.1 — escreva direto no site
 
 - Instale e escreva normalmente. Após uma pausa, erros reconhecidos recebem sublinhados. **Passe o mouse sobre a palavra** para ver sugestões e aplicar uma correção ali mesmo.
 - A reescrita com IA aparece nesse cartão. Não precisa importar texto, abrir painel ou escolher idioma. Alternativas de estilo também podem aparecer em frases sem erro de dicionário.
@@ -17,9 +17,15 @@
 
 **Experimental:** ainda não oferece a cobertura ou qualidade do Grammarly. As regras são iniciais e a IA pode mudar o sentido ou errar. Confira fatos, nomes e números antes de aceitar.
 
+## Correções de compatibilidade na 0.4.1
+
+`knowldge → knowledge` é verificado em editores ricos, frames `about:blank`/`srcdoc`, documentos editáveis (`designMode`), campos que se tornam editáveis depois do foco, Shadow DOM aberto e diálogos modais nativos. A extensão também se recupera quando o editor recria o documento do frame. Passar o mouse abre o cartão; aceitar preserva o restante do texto e a formatação.
+
+Esses testes usam exemplos locais desses tipos de editor. **O editor da conta do usuário no Pipedrive ainda não foi inspecionado diretamente**, portanto não é uma garantia de compatibilidade com essa conta ou todas as versões do produto. Veja [evidências de compatibilidade](docs/COMPATIBILITY.md).
+
 ## Instalar
 
-1. Baixe `grammarlio-0.4.0.zip` em [Releases](https://github.com/blajeen/Grammarlio/releases) e extraia para uma pasta permanente.
+1. Baixe `grammarlio-0.4.1.zip` em [Releases](https://github.com/blajeen/Grammarlio/releases) e extraia para uma pasta permanente.
 2. Abra `chrome://extensions` no Chrome ou `edge://extensions` no Edge.
 3. Ative **Modo do desenvolvedor**, clique em **Carregar sem compactação** e selecione a pasta com `manifest.json`.
 4. A janela de ativação abre automaticamente. Escolha **Sim, ativar IA** ou **Agora não**. As correções básicas já estão ligadas.
@@ -34,8 +40,10 @@ As bases abertas completas `.aff` e `.dic` são incluídas no pacote e funcionam
 | Idioma | Base | Entradas-base |
 | --- | --- | ---: |
 | Português brasileiro | VERO / LibreOffice | 312.368 |
-| Inglês americano | SCOWL / Hunspell | 49.568 |
+| Inglês americano | SCOWL + ESDB ampliado (união das bases) | 80.701 |
 | Espanhol es-ES | LibreOffice, Santiago Bosio e colaboradores | 57.344 |
+
+A ampliação inglesa inclui os arquivos oficiais ESDB/SCOWL en_US-large 2026.02.25 (76.958 entradas), preservando a base anterior e priorizando suas sugestões comuns. A união contém 80.701 grafias-base distintas. O build verifica os hashes e inclui as licenças. Bases maiores aceitam também palavras raras que podem parecer erros de outras palavras; não existe vocabulário universal ou detecção perfeita. Português e espanhol continuam com seus arquivos completos.
 
 Hunspell aplica também as flexões dos arquivos de afixos. “Completo” significa os arquivos integrais dessas bases, não toda palavra existente, definições ou cobertura universal de termos técnicos. Gramática vem de regras originais; reescrita vem do **Qwen3-1.7B q4f32_1 via WebLLM**. Não usamos bases do Grammarly nem consultamos a internet para revisar frases.
 
@@ -53,7 +61,7 @@ Não existe servidor de inferência. Conhecimento linguístico vem dos pesos pre
 
 ## Compatibilidade e limites
 
-Funciona em `textarea`, inputs de texto/busca e `contenteditable` compatíveis, incluindo frames HTTP/HTTPS. Apenas o campo em foco de uma página visível é revisado. O overlay não insere marcações no conteúdo. Ao aceitar, usa edição nativa e confere novamente o texto para evitar sobrescrever alterações recentes.
+Funciona em `textarea`, inputs de texto/busca e `contenteditable` compatíveis, incluindo frames HTTP/HTTPS e frames internos com origem HTTP/HTTPS herdada. Apenas o campo em foco de uma página visível é revisado. O overlay não insere marcações no conteúdo. Ao aceitar, usa edição nativa e confere novamente o texto para evitar sobrescrever alterações recentes.
 
 Senhas, tipos sensíveis, códigos identificados, readonly/disabled e campos opt-out são excluídos. Sites podem excluir um campo com `data-grammarlio="off"` ou `data-gramm="false"` no campo/ancestral. A identificação depende da marcação do site.
 
@@ -85,6 +93,7 @@ npm run check
 npx playwright install chromium
 npm run test:browser
 npm run test:inline
+npm run test:editors
 ```
 
 Carregue `dist` sem compactação. O build verifica o SHA-256 do runtime fixado em `model-lock.json`. Dependências têm versões e integridade fixadas em `package-lock.json`.

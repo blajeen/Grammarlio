@@ -1,4 +1,4 @@
-# Revisão nos campos — v0.4
+# Revisão nos campos — v0.4.1
 
 Instale, responda à oferta inicial de IA e escreva. Sem importação, painel de edição ou escolha de idioma. Dicionários/regras já vêm ativos; a IA é preparada após Sim e carrega automaticamente nos próximos usos. O popup contém um controle global e estado/ativação da IA.
 
@@ -24,3 +24,11 @@ Inputs de texto/busca, textarea e contenteditable comuns, inclusive frames HTTP/
 Senha, tipos sensíveis, códigos identificados, readonly/disabled, aria-readonly/aria-disabled e regiões inert/ocultas são excluídos. Sites podem usar `data-grammarlio="off"` ou `data-gramm="false"` no campo/ancestral. A identificação depende do site. O controle global suspende tudo. Atualizações manuais exigem recarregar abas existentes.
 
 Veja [testes](TESTING.md), [resultados](VALIDATION.md) e [privacidade](../PRIVACY.md).
+
+## Compatibilidade ampliada
+
+A 0.4.1 usa match_origin_as_fallback para frames relacionados e valida sender.id/tab/origin fornecidos pelo Chromium, aceitando about:blank/srcdoc/blob somente em subframes com origem HTTP/HTTPS. Origens opacas não são aceitas. Escuta hover em window para funcionar em designMode, recupera DOM/listeners após document.open/write, identifica editores ativados depois do foco e mantém o overlay dentro do diálogo modal do campo para evitar que fique inerte atrás dele.
+
+O inglês usa a união da base anterior com ESDB/SCOWL en_US-large 2026.02.25, em instâncias Hunspell separadas. Há 80.701 grafias-base distintas e flexões; sugestões comuns mantêm prioridade. Se o idioma atual não oferece alternativas, tenta as outras bases já carregadas. Português e espanhol preservam seus arquivos completos.
+
+Veja COMPATIBILITY.md para os testes e a limitação da verificação no Pipedrive real.

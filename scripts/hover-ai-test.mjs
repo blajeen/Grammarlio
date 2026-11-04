@@ -13,11 +13,14 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const args = process.argv.some((a) => a.startsWith("--profile="))
   ? process.argv
   : [...process.argv, "--profile=artifacts/ai-test-profile"];
-const { context, id, channel, initialOffer } = await launchExtension(args);
+const { context, worker, id, channel, initialOffer } =
+  await launchExtension(args);
 const evidence = {
   date: new Date().toISOString(),
   browser: channel,
-  extensionVersion: "0.4.0",
+  extensionVersion: await worker.evaluate(
+    () => chrome.runtime.getManifest().version,
+  ),
   cases: [],
   errors: [],
   offline: false,

@@ -12,7 +12,25 @@ async function getDictionary(language) {
   if (responses.some((r) => !r.ok))
     throw new Error("Não foi possível abrir o dicionário local.");
   const [aff, dic] = await Promise.all(responses.map((r) => r.text()));
-  return (dictionaries[language] = await createDictionary(aff, dic));
+  let supplement;
+  if (language === "en-US") {
+    const extra = await Promise.all(
+      ["aff", "dic"].map((ext) =>
+        fetch(new URL(`dictionaries/en-large.${ext}`, self.location.href)),
+      ),
+    );
+    if (extra.some((response) => !response.ok))
+      throw new Error("Não foi possível abrir o vocabulário inglês ampliado.");
+    const [extraAff, extraDic] = await Promise.all(
+      extra.map((response) => response.text()),
+    );
+    supplement = { aff: extraAff, dic: extraDic };
+  }
+  return (dictionaries[language] = await createDictionary(
+    aff,
+    dic,
+    supplement,
+  ));
 }
 self.onmessage = async ({ data }) => {
   try {
@@ -52,7 +70,7 @@ self.onmessage = async ({ data }) => {
     const dictionary = await getDictionary(data.language);
     const result =
       data.type === "suggest"
-        ? spellingOptions(data.word, dictionary)
+        ? spellingOptions(data.word, dictionary, Object.values(dictionaries))
         : unknownWords(data.text, dictionary, data.personal);
     self.postMessage({ id: data.id, result, entries: dictionary.entries });
   } catch (error) {
